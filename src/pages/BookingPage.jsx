@@ -235,7 +235,7 @@ export default function BookingPage() {
                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <label className="text-xs uppercase tracking-widest font-bold text-stone-500">Select a Preset Design</label>
                     <div className="flex flex-wrap gap-2">
-                      {['All', ...EVENT_TYPES].map(type => (
+                      {EVENT_TYPES.map(type => (
                         <button
                           key={type}
                           type="button"

@@ -180,6 +180,13 @@ export default function AdminDashboard() {
     setDeleteConfirmId(null);
   };
 
+  const handleCompleteBooking = (id) => {
+    const storedEvents = JSON.parse(localStorage.getItem('emis_events') || '[]');
+    const updatedEvents = storedEvents.map(e => e.id === id ? { ...e, status: 'Completed' } : e);
+    localStorage.setItem('emis_events', JSON.stringify(updatedEvents));
+    setEvents(updatedEvents);
+  };
+
   const handleOpenPresetModal = (preset = null) => {
     if (preset) {
       setSelectedPreset(preset);
@@ -441,6 +448,15 @@ export default function AdminDashboard() {
                     <td className="px-8 py-6 text-sm font-serif italic text-stone-900">₱{event.budget?.toLocaleString()}</td>
                     <td className="px-8 py-6">
                       <div className="flex items-center gap-3" onClick={(e) => e.stopPropagation()}>
+                        {event.status !== 'Completed' && event.status !== 'Cancelled' && (
+                          <button 
+                            onClick={() => handleCompleteBooking(event.id)} 
+                            className="p-2 text-stone-400 hover:text-green-600 transition-colors"
+                            title="Mark as Completed"
+                          >
+                            <CheckCircle2 size={16} />
+                          </button>
+                        )}
                         <Link to={`/track/${event.id}`} className="p-2 text-stone-400 hover:text-accent-gold transition-colors">
                           <ArrowRight size={16} />
                         </Link>

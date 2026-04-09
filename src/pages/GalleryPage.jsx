@@ -44,13 +44,67 @@ export default function GalleryPage() {
     setUploadLoading(true);
     setUploadError(null);
     
+    const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+    const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
+
+    // Helper to save to local storage (used for both Cloudinary success and local fallback)
+    const savePreset = (imageUrl) => {
+      const communityPresets = JSON.parse(localStorage.getItem('emis_community_presets') || '[]');
+      const session = JSON.parse(localStorage.getItem('admin_session') || '{}');
+      
+      const newEntry = {
+        id: `preset_${Date.now()}`,
+        name: newPreset.name || 'Untitled Design',
+        description: newPreset.description || '',
+        eventType: newPreset.eventType || 'Other',
+        price: Number(newPreset.price) || 0,
+        imageUrl: imageUrl,
+        isClientShared: true,
+        sharedBy: session.name || 'Anonymous Client',
+        createdAt: new Date().toISOString(),
+        isArchived: false
+      };
+
+      communityPresets.push(newEntry);
+      localStorage.setItem('emis_community_presets', JSON.stringify(communityPresets));
+      
+      setPresets(prev => [...prev, newEntry]);
+      setUploadSuccess(true);
+      
+      setTimeout(() => {
+        setIsUploadModalOpen(false);
+        setUploadSuccess(false);
+        setNewPreset({ name: '', description: '', eventType: 'Wedding', price: 15000, image: null });
+      }, 2000);
+    };
+
+    // If Cloudinary is not configured, use local Base64 fallback for demo purposes
+    if (!cloudName || cloudName === 'your_cloud_name' || !uploadPreset) {
+      console.warn('Cloudinary not configured. Using local fallback (Base64).');
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        try {
+          savePreset(reader.result);
+        } catch (err) {
+          setUploadError('Image too large for local storage. Please configure Cloudinary for real uploads.');
+          setUploadLoading(false);
+        }
+      };
+      reader.onerror = () => {
+        setUploadError('Failed to read local image file.');
+        setUploadLoading(false);
+      };
+      reader.readAsDataURL(newPreset.image);
+      return;
+    }
+
     try {
       const formData = new FormData();
       formData.append('file', newPreset.image);
-      formData.append('upload_preset', import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET);
+      formData.append('upload_preset', uploadPreset);
       
       const response = await fetch(
-        `https://api.cloudinary.com/v1_1/${import.meta.env.VITE_CLOUDINARY_CLOUD_NAME}/image/upload`,
+        `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
         {
           method: 'POST',
           body: formData,
@@ -60,40 +114,13 @@ export default function GalleryPage() {
       const data = await response.json();
       
       if (data.secure_url) {
-        const communityPresets = JSON.parse(localStorage.getItem('emis_community_presets') || '[]');
-        const session = JSON.parse(localStorage.getItem('admin_session') || '{}');
-        
-        const newEntry = {
-          id: `preset_${Date.now()}`,
-          name: newPreset.name || 'Untitled Design',
-          description: newPreset.description || '',
-          eventType: newPreset.eventType || 'Other',
-          price: Number(newPreset.price) || 0,
-          imageUrl: data.secure_url,
-          isClientShared: true,
-          sharedBy: session.name || 'Anonymous Client',
-          createdAt: new Date().toISOString(),
-          isArchived: false
-        };
-
-        communityPresets.push(newEntry);
-        localStorage.setItem('emis_community_presets', JSON.stringify(communityPresets));
-        
-        // Update local state
-        setPresets(prev => [...prev, newEntry]);
-        setUploadSuccess(true);
-        
-        setTimeout(() => {
-          setIsUploadModalOpen(false);
-          setUploadSuccess(false);
-          setNewPreset({ name: '', description: '', eventType: 'Wedding', price: 15000, image: null });
-        }, 2000);
+        savePreset(data.secure_url);
       } else {
         throw new Error(data.error?.message || 'Upload failed');
       }
     } catch (error) {
       console.error('Upload failed:', error);
-      setUploadError('Failed to share design. Please try again.');
+      setUploadError(error.message || 'Failed to share design. Please try again.');
     } finally {
       setUploadLoading(false);
     }
