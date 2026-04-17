@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { MOCK_PRESETS, EVENT_TYPES } from '../constants';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion as Motion, AnimatePresence } from 'motion/react';
 import { format, addDays, isSameDay, parseISO } from 'date-fns';
 import { Calendar as CalendarIcon, CheckCircle2, ArrowRight, ArrowLeft, Info } from 'lucide-react';
 
@@ -125,7 +125,7 @@ export default function BookingPage() {
         <form onSubmit={handleSubmit}>
           <AnimatePresence mode="wait">
             {step === 1 && (
-              <motion.div 
+              <Motion.div 
                 key="step1"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -199,11 +199,11 @@ export default function BookingPage() {
                     Next Step <ArrowRight size={18} />
                   </button>
                 </div>
-              </motion.div>
+              </Motion.div>
             )}
 
             {step === 2 && (
-              <motion.div 
+              <Motion.div 
                 key="step2"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -299,11 +299,11 @@ export default function BookingPage() {
                     Next Step <ArrowRight size={18} />
                   </button>
                 </div>
-              </motion.div>
+              </Motion.div>
             )}
 
             {step === 3 && (
-              <motion.div 
+              <Motion.div 
                 key="step3"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -396,7 +396,7 @@ export default function BookingPage() {
                     {loading ? 'Processing...' : 'Confirm Booking'} <CheckCircle2 size={18} />
                   </button>
                 </div>
-              </motion.div>
+              </Motion.div>
             )}
           </AnimatePresence>
         </form>

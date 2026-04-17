@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { format } from 'date-fns';
 import { Search, Calendar, Filter, ArrowRight, Clock, CheckCircle2, XCircle, AlertCircle, Phone, Mail } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion as Motion, AnimatePresence } from 'motion/react';
 
 export default function ClientDashboard() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -44,7 +44,7 @@ export default function ClientDashboard() {
   return (
     <div className="max-w-6xl mx-auto space-y-12 pb-20">
       <header className="text-center space-y-4">
-        <motion.div
+        <Motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
@@ -54,7 +54,7 @@ export default function ClientDashboard() {
           <p className="text-stone-500 max-w-lg mx-auto mt-4 text-sm uppercase tracking-widest">
             Access all your event styling projects in one place.
           </p>
-        </motion.div>
+        </Motion.div>
       </header>
 
       {/* Search Section */}
@@ -85,7 +85,7 @@ export default function ClientDashboard() {
 
       <AnimatePresence mode="wait">
         {hasSearched && (
-          <motion.section
+          <Motion.section
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
@@ -187,13 +187,13 @@ export default function ClientDashboard() {
                 </button>
               </div>
             )}
-          </motion.section>
+          </Motion.section>
         )}
       </AnimatePresence>
 
       {/* Help Section */}
       {!hasSearched && (
-        <motion.section 
+        <Motion.section 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.4 }}
@@ -214,7 +214,7 @@ export default function ClientDashboard() {
             <h3 className="font-serif italic text-lg">Need Help?</h3>
             <p className="text-xs text-stone-500 leading-relaxed uppercase tracking-widest">If you're having trouble finding your booking, please contact our support team directly.</p>
           </div>
-        </motion.section>
+        </Motion.section>
       )}
     </div>
   );

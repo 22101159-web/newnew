@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { MOCK_PRESETS } from '../constants';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion as Motion, AnimatePresence } from 'motion/react';
 import { format } from 'date-fns';
 import { Send, Camera, CheckCircle2, Clock, Calendar, MapPin, MessageSquare, Image as ImageIcon, X } from 'lucide-react';
 
@@ -26,15 +26,16 @@ export default function TrackingPage() {
   });
   const chatEndRef = useRef(null);
 
-  useEffect(() => {
-    if (event && event.status === 'Completed' && !shareData.name) {
+  const handleOpenShareModal = () => {
+    if (event && !shareData.name) {
       setShareData({
         name: `${event.eventType} by ${event.clientName}`,
         description: `A beautiful ${event.eventType.toLowerCase()} styled with a budget of ₱${event.budget.toLocaleString()}.`,
         imageUrl: event.statusPhotos?.[0] || ''
       });
     }
-  }, [event]);
+    setIsShareModalOpen(true);
+  };
 
   const handleShareToCommunity = async (e) => {
     e.preventDefault();
@@ -175,13 +176,13 @@ export default function TrackingPage() {
       {/* New Booking Modal */}
       <AnimatePresence>
         {showNewBookingModal && (
-          <motion.div 
+          <Motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-stone-900/40 backdrop-blur-md"
           >
-            <motion.div 
+            <Motion.div 
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               className="bg-white border border-stone-100 rounded-[40px] p-12 max-w-lg w-full text-center space-y-8 shadow-2xl"
@@ -204,8 +205,8 @@ export default function TrackingPage() {
               >
                 View Tracking Page
               </button>
-            </motion.div>
-          </motion.div>
+            </Motion.div>
+          </Motion.div>
         )}
       </AnimatePresence>
 
@@ -268,7 +269,7 @@ export default function TrackingPage() {
                 <span className="text-[10px] uppercase tracking-widest text-stone-400 font-bold">{event.statusPhotos?.length || 0} Photos Shared</span>
                 {event.statusPhotos?.length > 0 && event.status === 'Completed' && (
                   <button 
-                    onClick={() => setIsShareModalOpen(true)}
+                    onClick={handleOpenShareModal}
                     className="bg-stone-900 text-white px-6 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest hover:bg-stone-800 transition-all shadow-lg flex items-center gap-2"
                   >
                     <Send size={12} /> Share to Community
@@ -402,13 +403,13 @@ export default function TrackingPage() {
       {/* Share Modal */}
       <AnimatePresence>
         {isShareModalOpen && (
-          <motion.div 
+          <Motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-stone-900/40 backdrop-blur-md"
           >
-            <motion.div 
+            <Motion.div 
               initial={{ scale: 0.9, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               className="bg-white border border-stone-100 rounded-[40px] p-10 max-w-xl w-full shadow-2xl relative"
@@ -478,8 +479,8 @@ export default function TrackingPage() {
                   </button>
                 </form>
               )}
-            </motion.div>
-          </motion.div>
+            </Motion.div>
+          </Motion.div>
         )}
       </AnimatePresence>
     </div>

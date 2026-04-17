@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { MOCK_PRESETS, EVENT_TYPES } from '../constants';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion as Motion, AnimatePresence } from 'motion/react';
 import { Search, Filter, ArrowRight, Upload, X, Camera, CheckCircle2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -85,7 +85,7 @@ export default function GalleryPage() {
       reader.onloadend = () => {
         try {
           savePreset(reader.result);
-        } catch (err) {
+        } catch {
           setUploadError('Image too large for local storage. Please configure Cloudinary for real uploads.');
           setUploadLoading(false);
         }
@@ -222,7 +222,7 @@ export default function GalleryPage() {
       ) : (
         <div className="grid md:grid-cols-3 gap-8">
           {filteredPresets.map((preset, index) => (
-            <motion.div 
+            <Motion.div 
               key={preset.id}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -282,7 +282,7 @@ export default function GalleryPage() {
                   Book this preset <ArrowRight size={14} />
                 </Link>
               </div>
-            </motion.div>
+            </Motion.div>
           ))}
         </div>
       )}
@@ -300,14 +300,14 @@ export default function GalleryPage() {
       <AnimatePresence>
         {isUploadModalOpen && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-            <motion.div 
+            <Motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsUploadModalOpen(false)}
               className="absolute inset-0 bg-stone-900/60 backdrop-blur-sm"
             />
-            <motion.div 
+            <Motion.div 
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
@@ -429,7 +429,7 @@ export default function GalleryPage() {
                   </form>
                 )}
               </div>
-            </motion.div>
+            </Motion.div>
           </div>
         )}
       </AnimatePresence>

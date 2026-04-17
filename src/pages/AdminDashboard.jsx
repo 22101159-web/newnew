@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { format, parseISO, isSameDay } from 'date-fns';
+import React, { useState, useEffect } from 'react';
+import { format } from 'date-fns';
 import { 
   LayoutDashboard, Users, Calendar as CalendarIcon, TrendingUp, Search, Filter, 
-  ArrowRight, CheckCircle2, Clock, AlertCircle, Plus, X, Edit2, Trash2, ChevronLeft, ChevronRight, Archive
+  ArrowRight, CheckCircle2, Clock, AlertCircle, Plus, X, Trash2, ChevronLeft, Archive
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
@@ -14,31 +14,33 @@ export default function AdminDashboard() {
   const [events, setEvents] = useState([]);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState(new URLSearchParams(window.location.search).get('tab') || 'calendar'); // 'calendar', 'bookings', 'presets', 'community', 'users'
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get('tab') || 'calendar';
+  const setActiveTab = (tab) => setSearchParams({ tab }, { replace: true });
 
-  const [adminName, setAdminName] = useState('Admin');
-
-  useEffect(() => {
+  const [adminName] = useState(() => {
     const manualSession = localStorage.getItem('admin_session');
     if (manualSession) {
       try {
         const sessionData = JSON.parse(manualSession);
-        setAdminName(sessionData.name || 'Admin');
-      } catch (e) {}
+        return sessionData.name || 'Admin';
+      } catch {
+        return 'Admin';
+      }
     }
-  }, []);
+    return 'Admin';
+  });
 
-  useEffect(() => {
-    const tab = new URLSearchParams(window.location.search).get('tab');
-    if (tab) setActiveTab(tab);
-  }, [window.location.search]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isPresetModalOpen, setIsPresetModalOpen] = useState(false);
+  const [isUserModalOpen, setIsUserModalOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [selectedPreset, setSelectedPreset] = useState(null);
+  const [selectedUser, setSelectedUser] = useState(null);
   const [presets, setPresets] = useState([]);
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
   const [deletePresetConfirmId, setDeletePresetConfirmId] = useState(null);
+  const [deleteUserConfirmId, setDeleteUserConfirmId] = useState(null);
   const [filterType, setFilterType] = useState('All');
   const [selectedPresetType, setSelectedPresetType] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
@@ -54,6 +56,14 @@ export default function AdminDashboard() {
     budget: 50000,
     status: 'Booked',
     notes: ''
+  });
+
+  // Form state for user
+  const [userData, setUserData] = useState({
+    name: '',
+    email: '',
+    password: '',
+    role: 'staff'
   });
 
   // Form state for preset
@@ -274,6 +284,57 @@ export default function AdminDashboard() {
     localStorage.setItem('emis_community_presets', JSON.stringify(updatedPresets));
     setPresets(updatedPresets);
     setDeletePresetConfirmId(null);
+  };
+
+  const handleOpenUserModal = (user = null) => {
+    if (user) {
+      setSelectedUser(user);
+      setUserData({
+        name: user.name,
+        email: user.email,
+        password: user.password || '',
+        role: user.role
+      });
+    } else {
+      setSelectedUser(null);
+      setUserData({
+        name: '',
+        email: '',
+        password: '',
+        role: 'staff'
+      });
+    }
+    setIsUserModalOpen(true);
+  };
+
+  const handleSaveUser = (e) => {
+    e.preventDefault();
+    const storedUsers = JSON.parse(localStorage.getItem('emis_users') || '[]');
+    let updatedUsers;
+
+    if (selectedUser) {
+      updatedUsers = storedUsers.map(u => u.id === selectedUser.id ? { ...u, ...userData } : u);
+    } else {
+      const newUser = {
+        ...userData,
+        id: `user_${Date.now()}`,
+        createdAt: new Date().toISOString()
+      };
+      updatedUsers = [...storedUsers, newUser];
+    }
+    
+    localStorage.setItem('emis_users', JSON.stringify(updatedUsers));
+    setUsers(updatedUsers);
+    setIsUserModalOpen(false);
+  };
+
+  const handleDeleteUser = (id) => {
+    const storedUsers = JSON.parse(localStorage.getItem('emis_users') || '[]');
+    const updatedUsers = storedUsers.filter(u => u.id !== id);
+    localStorage.setItem('emis_users', JSON.stringify(updatedUsers));
+    setUsers(updatedUsers);
+    setDeleteUserConfirmId(null);
+    setIsUserModalOpen(false);
   };
 
   const filteredEvents = events.filter(event => {
@@ -882,12 +943,21 @@ export default function AdminDashboard() {
 
       {activeTab === 'users' && (
         <section className="bg-white rounded-[40px] border border-stone-200 shadow-xl overflow-hidden">
-          <div className="p-8 border-b border-stone-100 bg-stone-50/50">
-            <h2 className="text-2xl font-serif italic text-stone-900">User Roles & Access</h2>
+          <div className="p-8 border-b border-stone-100 bg-stone-50/50 flex justify-between items-center">
+            <div>
+              <h2 className="text-2xl font-serif italic text-stone-900">User Roles & Access</h2>
+              <p className="text-[10px] uppercase tracking-widest text-stone-500 mt-1">Manage admin and staff accounts</p>
+            </div>
+            <button 
+              onClick={() => handleOpenUserModal()}
+              className="px-6 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest bg-accent-gold text-white shadow-md hover:bg-gold-600 transition-all"
+            >
+              <Plus size={14} className="inline mr-2" /> Add User
+            </button>
           </div>
           <div className="p-8 grid md:grid-cols-2 gap-8">
             {users.map(user => (
-              <div key={user.id} className="flex items-center justify-between p-6 bg-stone-50/50 rounded-3xl border border-stone-100 hover:border-accent-gold/30 transition-all">
+              <div key={user.id} className="flex items-center justify-between p-6 bg-stone-50/50 rounded-3xl border border-stone-100 hover:border-accent-gold/30 transition-all hover:shadow-md">
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 bg-gold-50 rounded-2xl flex items-center justify-center text-accent-gold font-bold uppercase border border-gold-100">
                     {user.name?.charAt(0) || 'U'}
@@ -903,11 +973,138 @@ export default function AdminDashboard() {
                   }`}>
                     {user.role}
                   </span>
+                  <button 
+                    onClick={() => handleOpenUserModal(user)}
+                    className="p-2 text-stone-400 hover:text-accent-gold transition-colors"
+                  >
+                    <ArrowRight size={16} />
+                  </button>
                 </div>
               </div>
             ))}
+            {users.length === 0 && (
+              <div className="col-span-full py-12 text-center bg-stone-50 rounded-3xl border border-dashed border-stone-200 text-stone-400">
+                <p className="text-[10px] uppercase tracking-widest font-bold">No additional users created.</p>
+                <p className="text-[10px] mt-1 italic">The main admin account (Admin123) is built-in.</p>
+              </div>
+            )}
           </div>
         </section>
+      )}
+
+      {/* User Management Modal */}
+      {isUserModalOpen && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-stone-900/60 backdrop-blur-sm">
+          <div className="bg-white border border-stone-100 rounded-[40px] p-10 max-w-md w-full shadow-2xl relative">
+            <button onClick={() => setIsUserModalOpen(false)} className="absolute top-8 right-8 text-stone-400 hover:text-stone-900 transition-colors">
+              <X size={24} />
+            </button>
+            <div className="mb-8">
+              <span className="text-xs uppercase tracking-[0.5em] text-accent-gold font-bold">Access Control</span>
+              <h2 className="text-3xl font-serif italic text-stone-900">{selectedUser ? 'Edit User' : 'Add User'}</h2>
+            </div>
+            <form onSubmit={handleSaveUser} className="space-y-6">
+              <div className="space-y-2">
+                <label className="text-xs uppercase tracking-widest font-bold text-stone-500">Full Name</label>
+                <input 
+                  required 
+                  type="text" 
+                  value={userData.name} 
+                  onChange={(e) => setUserData({...userData, name: e.target.value})} 
+                  placeholder="e.g. Maria Clara"
+                  className="w-full px-6 py-4 bg-stone-50 border border-stone-200 rounded-2xl text-sm" 
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs uppercase tracking-widest font-bold text-stone-500">Username/Email</label>
+                <input 
+                  required 
+                  type="text" 
+                  value={userData.email} 
+                  onChange={(e) => setUserData({...userData, email: e.target.value})} 
+                  placeholder="e.g. maria_clara"
+                  className="w-full px-6 py-4 bg-stone-50 border border-stone-200 rounded-2xl text-sm" 
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs uppercase tracking-widest font-bold text-stone-500">Password</label>
+                <input 
+                  required 
+                  type="password" 
+                  value={userData.password} 
+                  onChange={(e) => setUserData({...userData, password: e.target.value})} 
+                  placeholder="••••••••"
+                  className="w-full px-6 py-4 bg-stone-50 border border-stone-200 rounded-2xl text-sm" 
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs uppercase tracking-widest font-bold text-stone-500">Role</label>
+                <div className="flex gap-4">
+                  <button 
+                    type="button"
+                    onClick={() => setUserData({...userData, role: 'staff'})}
+                    className={`flex-1 py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all border ${userData.role === 'staff' ? 'bg-stone-900 text-white border-stone-900' : 'bg-white text-stone-500 border-stone-200 hover:border-accent-gold'}`}
+                  >
+                    Staff
+                  </button>
+                  <button 
+                    type="button"
+                    onClick={() => setUserData({...userData, role: 'admin'})}
+                    className={`flex-1 py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all border ${userData.role === 'admin' ? 'bg-accent-gold text-white border-accent-gold' : 'bg-white text-stone-500 border-stone-200 hover:border-accent-gold'}`}
+                  >
+                    Admin
+                  </button>
+                </div>
+              </div>
+              <div className="flex gap-4 pt-4">
+                <button 
+                  type="submit"
+                  className="flex-[2] bg-stone-900 text-white py-5 rounded-full font-bold uppercase tracking-widest hover:bg-stone-800 transition-all shadow-lg"
+                >
+                  {selectedUser ? 'Update User' : 'Create User'}
+                </button>
+                {selectedUser && (
+                  <button 
+                    type="button"
+                    onClick={() => setDeleteUserConfirmId(selectedUser.id)}
+                    className="flex-1 bg-red-50 text-red-500 py-5 rounded-full font-bold uppercase tracking-widest hover:bg-red-100 transition-all border border-red-100"
+                  >
+                    <Trash2 size={20} className="mx-auto" />
+                  </button>
+                )}
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete User Confirmation Modal */}
+      {deleteUserConfirmId && (
+        <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-stone-900/60 backdrop-blur-sm">
+          <div className="bg-white border border-stone-100 rounded-[40px] p-10 max-w-md w-full shadow-2xl text-center space-y-6">
+            <div className="w-20 h-20 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto">
+              <AlertCircle size={40} />
+            </div>
+            <div className="space-y-2">
+              <h2 className="text-2xl font-serif italic text-stone-900">Remove User?</h2>
+              <p className="text-stone-500 text-sm">This user will no longer be able to access the dashboard.</p>
+            </div>
+            <div className="flex gap-4 pt-4">
+              <button 
+                onClick={() => setDeleteUserConfirmId(null)}
+                className="flex-1 py-4 bg-stone-100 text-stone-600 rounded-full font-bold uppercase tracking-widest hover:bg-stone-200 transition-all"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={() => handleDeleteUser(deleteUserConfirmId)}
+                className="flex-1 py-4 bg-red-500 text-white rounded-full font-bold uppercase tracking-widest hover:bg-red-600 transition-all shadow-lg shadow-red-200"
+              >
+                Confirm Remove
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Booking Modal */}

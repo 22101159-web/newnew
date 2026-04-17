@@ -15,6 +15,15 @@ export default function AdminLoginPage() {
     setError('');
     
     // Simple local check for demo/AI Studio purposes
+    const storedUsers = JSON.parse(localStorage.getItem('emis_users') || '[]');
+    const normalizedInput = username.trim().toLowerCase();
+    
+    // Find user by email or name (case-insensitive)
+    const foundUser = storedUsers.find(u => 
+      (u.email?.toLowerCase() === normalizedInput || u.name?.toLowerCase() === normalizedInput) && 
+      u.password === password
+    );
+
     if (username === 'Admin123' && password === 'Admin123') {
       const sessionData = {
         uid: 'admin_123',
@@ -23,8 +32,31 @@ export default function AdminLoginPage() {
       };
       localStorage.setItem('admin_session', JSON.stringify(sessionData));
       window.location.href = '/admin/dashboard';
+    } else if (foundUser) {
+      const sessionData = {
+        uid: foundUser.id,
+        name: foundUser.name,
+        role: foundUser.role
+      };
+      localStorage.setItem('admin_session', JSON.stringify(sessionData));
+      
+      // Redirect based on role
+      if (foundUser.role === 'admin') {
+        window.location.href = '/admin/dashboard';
+      } else {
+        window.location.href = '/staff/dashboard';
+      }
     } else {
-      setError('Invalid username or password. Use Admin123 / Admin123');
+      // Check if user exists but password is wrong to provide better feedback
+      const userExists = storedUsers.some(u => 
+        u.email?.toLowerCase() === normalizedInput || u.name?.toLowerCase() === normalizedInput
+      );
+      
+      if (userExists) {
+        setError('Incorrect password. Please try again.');
+      } else {
+        setError('User not found. Check your username/email.');
+      }
       setLoading(false);
     }
   };

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { motion } from 'motion/react';
-import { ArrowRight, Star, Calendar, MessageSquare, Camera } from 'lucide-react';
+import { motion as Motion } from 'motion/react';
+import { ArrowRight, Star, Calendar, MessageSquare } from 'lucide-react';
 
 import haciendaRustic2Img from '../assets/images/hacienda-rustic-2.jpeg';
 import modernPinas2Img from '../assets/images/modern-pinas-2.jpg';
@@ -21,22 +21,22 @@ export default function LandingPage() {
           <div className="absolute inset-0 bg-gradient-to-b from-stone-900/40 to-stone-900/60"></div>
         </div>
         <div className="relative z-10 text-center text-white px-4 max-w-4xl">
-          <motion.h1 
+          <Motion.h1 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             className="text-5xl md:text-8xl font-serif italic mb-6 drop-shadow-lg"
           >
             Timeless Elegance for Your Special Moments
-          </motion.h1>
-          <motion.p 
+          </Motion.h1>
+          <Motion.p 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
             className="text-lg md:text-xl uppercase tracking-[0.4em] mb-10 opacity-90 font-medium"
           >
             Gabrielle Custodio Event Styling
-          </motion.p>
-          <motion.div
+          </Motion.p>
+          <Motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
@@ -48,7 +48,7 @@ export default function LandingPage() {
             <Link to="/gallery" className="bg-white/10 backdrop-blur-md border border-white/30 text-white px-10 py-4 rounded-full font-bold uppercase tracking-widest hover:bg-white/20 transition-all">
               View Gallery
             </Link>
-          </motion.div>
+          </Motion.div>
         </div>
       </section>
 
