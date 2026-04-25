@@ -44,13 +44,12 @@ export default function GalleryPage() {
     setUploadLoading(true);
     setUploadError(null);
     
-    const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
-    const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
+    const session = JSON.parse(localStorage.getItem('admin_session') || '{}');
+    const token = session.token || null;
 
-    // Helper to save to local storage (used for both Cloudinary success and local fallback)
+    // Helper to save to local storage
     const savePreset = (imageUrl) => {
       const communityPresets = JSON.parse(localStorage.getItem('emis_community_presets') || '[]');
-      const session = JSON.parse(localStorage.getItem('admin_session') || '{}');
       
       const newEntry = {
         id: `preset_${Date.now()}`,
@@ -78,15 +77,15 @@ export default function GalleryPage() {
       }, 2000);
     };
 
-    // If Cloudinary is not configured, use local Base64 fallback for demo purposes
-    if (!cloudName || cloudName === 'your_cloud_name' || !uploadPreset) {
-      console.warn('Cloudinary not configured. Using local fallback (Base64).');
+    if (!token) {
+      // If Cloudinary is not configured, use local Base64 fallback for demo purposes
+      console.warn('Backend not accessible. Using local fallback (Base64).');
       const reader = new FileReader();
       reader.onloadend = () => {
         try {
           savePreset(reader.result);
         } catch {
-          setUploadError('Image too large for local storage. Please configure Cloudinary for real uploads.');
+          setUploadError('Image too large for local storage.');
           setUploadLoading(false);
         }
       };
@@ -101,22 +100,21 @@ export default function GalleryPage() {
     try {
       const formData = new FormData();
       formData.append('file', newPreset.image);
-      formData.append('upload_preset', uploadPreset);
       
-      const response = await fetch(
-        `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
-        {
-          method: 'POST',
-          body: formData,
-        }
-      );
+      const response = await fetch('/api/upload/', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData,
+      });
       
       const data = await response.json();
       
-      if (data.secure_url) {
-        savePreset(data.secure_url);
+      if (data.url) {
+        savePreset(data.url);
       } else {
-        throw new Error(data.error?.message || 'Upload failed');
+        throw new Error('Upload failed');
       }
     } catch (error) {
       console.error('Upload failed:', error);

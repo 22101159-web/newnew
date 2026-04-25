@@ -71,30 +71,30 @@ export default function StaffDashboard() {
     setUploading(true);
     
     try {
+      const sessionData = JSON.parse(localStorage.getItem('admin_session') || '{}');
       const formData = new FormData();
       formData.append('file', file);
-      formData.append('upload_preset', import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET);
       
-      const response = await fetch(
-        `https://api.cloudinary.com/v1_1/${import.meta.env.VITE_CLOUDINARY_CLOUD_NAME}/image/upload`,
-        {
-          method: 'POST',
-          body: formData,
-        }
-      );
+      const response = await fetch('/api/upload/', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${sessionData.token}`
+        },
+        body: formData,
+      });
       
       const data = await response.json();
       
-      if (data.secure_url) {
+      if (data.url) {
         const storedEvents = JSON.parse(localStorage.getItem('emis_events') || '[]');
-        const updatedPhotos = [...(selectedEvent.statusPhotos || []), data.secure_url];
+        const updatedPhotos = [...(selectedEvent.statusPhotos || []), data.url];
         const updatedEvents = storedEvents.map(e => e.id === selectedEvent.id ? { ...e, statusPhotos: updatedPhotos } : e);
         
         localStorage.setItem('emis_events', JSON.stringify(updatedEvents));
         setEvents(updatedEvents);
         setSelectedEvent(prev => ({ ...prev, statusPhotos: updatedPhotos }));
       } else {
-        throw new Error(data.error?.message || 'Upload failed');
+        throw new Error('Upload failed');
       }
     } catch (error) {
       console.error('Upload error:', error);

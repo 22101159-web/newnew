@@ -843,16 +843,23 @@ export default function AdminDashboard() {
                         if (!file) return;
                         setUploading(true);
                         try {
+                          const sessionData = JSON.parse(localStorage.getItem('admin_session') || '{}');
                           const formData = new FormData();
                           formData.append('file', file);
-                          formData.append('upload_preset', import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET);
-                          const response = await fetch(
-                            `https://api.cloudinary.com/v1_1/${import.meta.env.VITE_CLOUDINARY_CLOUD_NAME}/image/upload`,
-                            { method: 'POST', body: formData }
-                          );
+                          
+                          const response = await fetch('/api/upload/', {
+                            method: 'POST',
+                            headers: {
+                              'Authorization': `Bearer ${sessionData.token}`
+                            },
+                            body: formData,
+                          });
+                          
                           const data = await response.json();
-                          if (data.secure_url) {
-                            setPresetData({ ...presetData, imageUrl: data.secure_url });
+                          if (data.url) {
+                            setPresetData({ ...presetData, imageUrl: data.url });
+                          } else {
+                            throw new Error('Upload failed');
                           }
                         } catch (err) {
                           console.error('Upload error:', err);
