@@ -9,56 +9,49 @@ export default function AdminLoginPage() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError('');
     
-    // Call Python API for login
-    const loginData = new URLSearchParams();
-    loginData.append('username', username);
-    loginData.append('password', password);
+    try {
+      const formData = new URLSearchParams();
+      formData.append('username', username);
+      formData.append('password', password);
 
-    fetch('/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: loginData
-    })
-    .then(async (res) => {
-      if (!res.ok) {
-        const errData = await res.json();
-        throw new Error(errData.detail || 'Login failed');
-      }
-      return res.json();
-    })
-    .then(data => {
-      const token = data.access_token;
-      localStorage.setItem('token', token);
-      
-      // Fetch user profile
-      return fetch('/api/users/me', {
-        headers: { 'Authorization': `Bearer ${token}` }
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: formData,
       });
-    })
-    .then(res => res.json())
-    .then(user => {
+
+      if (!response.ok) {
+        throw new Error('Invalid credentials');
+      }
+
+      const data = await response.json();
+      
       const sessionData = {
-        uid: user.id,
-        name: user.name,
-        role: user.role
+        uid: data.uid,
+        token: data.access_token,
+        role: data.role,
+        name: username
       };
+      
       localStorage.setItem('admin_session', JSON.stringify(sessionData));
       
-      if (user.role === 'admin') {
+      if (data.role === 'admin') {
         window.location.href = '/admin/dashboard';
       } else {
         window.location.href = '/staff/dashboard';
       }
-    })
-    .catch(err => {
-      setError(err.message || 'Invalid username or password.');
+    } catch (err) {
+      setError(err.message || 'Authentication failed');
+    } finally {
       setLoading(false);
-    });
+    }
   };
 
   return (

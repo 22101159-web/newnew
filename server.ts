@@ -1,69 +1,67 @@
-import express from "express";
-import { createServer as createViteServer } from "vite";
-import { spawn, execSync, ChildProcess } from "child_process";
-import path from "path";
+import { createServer } from 'vite';
+import { spawn } from 'child_process';
+import path from 'path';
 import { fileURLToPath } from 'url';
+import express from 'express';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-async function startServer() {
-  const app = express();
+async function start() {
+  console.log("Installing Python dependencies...");
+  await new Promise((resolve, reject) => {
+    // Adding uv / pip command here
+    const p = spawn('python3', ['-m', 'pip', 'install', '-r', 'requirements.txt'], { 
+      cwd: path.join(__dirname, 'backend'),
+      stdio: 'inherit' 
+    });
+    p.on('close', (code) => {
+      if (code === 0) resolve(true);
+      else reject(new Error(`pip3 failed with code ${code}`));
+    });
+  });
+
+  console.log("Starting Python FastAPI Server...");
+  const pythonServer = spawn('python3', ['-m', 'uvicorn', 'app.main:app', '--host', '127.0.0.1', '--port', '8000'], {
+    cwd: path.join(__dirname, 'backend'),
+    stdio: 'inherit'
+  });
+
+  pythonServer.on('close', (code) => {
+    console.log(`Python server exited with code ${code}`);
+  });
+
+  const isProd = process.env.NODE_ENV === 'production';
   const PORT = 3000;
 
-  console.log("Starting Python Backend...");
+  if (isProd) {
+    const app = express();
+    const distPath = path.join(__dirname, 'dist');
+    
+    // In production we just serve the frontend statically,
+    // and rely on a reverse proxy or same node server for /api.
+    // We proxy /api to the python server
+    const { createProxyMiddleware } = await import('http-proxy-middleware');
+    app.use('/api', createProxyMiddleware({ target: 'http://127.0.0.1:8000', changeOrigin: true }));
 
-  // Install dependencies if needed (optional, could be slow)
-  try {
-     console.log("Installing Python dependencies...");
-     execSync("pip3 install -r backend/requirements.txt", { stdio: 'inherit' });
-  } catch (err) {
-     console.error("Failed to install python dependencies:", err);
-  }
-
-  // Start Python Backend
-  const pythonProcess: ChildProcess = spawn("python3", [
-      "-m", "uvicorn", 
-      "backend.app.main:app", 
-      "--port", "8000", 
-      "--host", "127.0.0.1",
-      "--reload"
-  ]);
-  
-  pythonProcess.stdout?.on("data", (data) => console.log(`Python: ${data.toString()}`));
-  pythonProcess.stderr?.on("data", (data) => console.error(`Python Error: ${data.toString()}`));
-
-  // Vite middleware for development
-  if (process.env.NODE_ENV !== "production") {
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: "spa",
-    });
-    app.use(vite.middlewares);
-  } else {
-    const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
     app.get('*', (req, res) => {
       res.sendFile(path.join(distPath, 'index.html'));
     });
+
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`Production server running on port ${PORT}`);
+    });
+  } else {
+    // In dev mode, we start Vite's dev server locally
+    console.log("Starting Vite Server...");
+    const viteServer = await createServer({
+      root: __dirname,
+      server: { host: '0.0.0.0', port: PORT }
+    });
+    await viteServer.listen();
+    viteServer.printUrls();
   }
-
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on http://0.0.0.0:${PORT}`);
-  });
-
-  // Handle process termination
-  process.on('SIGINT', () => {
-    pythonProcess.kill();
-    process.exit();
-  });
-
-  process.on('SIGTERM', () => {
-    pythonProcess.kill();
-    process.exit();
-  });
 }
 
-startServer().catch(err => {
-  console.error("Failed to start server:", err);
-});
+start().catch(console.error);

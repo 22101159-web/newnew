@@ -1,62 +1,55 @@
+import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from .database import engine, Base
-from .routers import auth, users
-from .database import SessionLocal
-from .services import auth_service
-from .schemas import user as user_schema
+from .database import engine, Base, SessionLocal
+from .models.user import User
+from .routers import auth_router, users_router
+from .services.auth_service import get_password_hash
 
-# Create database tables
+# Setup logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Create tables
 Base.metadata.create_all(bind=engine)
 
-# Seed initial admin if not exists
-def seed_admin():
-    db = SessionLocal()
-    admin = auth_service.get_user_by_email(db, "Admin123")
-    # Also check email variant
-    if not admin:
-        admin = auth_service.get_user_by_email(db, "admin@example.com")
-    
-    if not admin:
-        print("Seeding initial admin user...")
-        initial_admin = user_schema.UserCreate(
-            name="System Admin",
-            email="admin@example.com", # Default email
-            password="Admin123",
-            role="admin"
-        )
-        # We also want to support logging in with 'Admin123' as username 
-        # but schemas expect EmailStr, so I'll just use a valid email
-        # and update auth_service to handle it.
-        # Actually, let's just make one with email 'Admin123' if we allow it in Schema.
-        # For now, use admin@example.com
-        auth_service.create_user(db, initial_admin)
-        print("Initial admin created: admin@example.com / Admin123")
-    db.close()
+app = FastAPI(title="EMI System API")
 
-seed_admin()
-
-app = FastAPI(title="Event Styling API")
-
-# Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # In production, replace with your frontend URL
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Include routers
-app.include_api_routes = [
-    app.include_router(auth.router, prefix="/api"),
-    app.include_router(users.router, prefix="/api"),
-]
+app.include_router(auth_router)
+app.include_router(users_router)
 
-@app.get("/")
-def read_root():
-    return {"message": "Welcome to Event Styling API"}
+@app.on_event("startup")
+def startup_event():
+    logger.info("Starting up EMI API")
+    db = SessionLocal()
+    try:
+        # Check if admin exists
+        admin = db.query(User).filter(User.username == "Admin123").first()
+        if not admin:
+            logger.info("Admin user not found. Creating default admin.")
+            hashed_pw = get_password_hash("Admin123")
+            default_admin = User(
+                username="Admin123",
+                email="admin@system.local",
+                hashed_password=hashed_pw,
+                role="admin"
+            )
+            db.add(default_admin)
+            db.commit()
+            logger.info("Default admin created successfully.")
+    except Exception as e:
+        logger.error(f"Error during startup: {e}")
+    finally:
+        db.close()
 
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+@app.get("/api/health")
+def health_check():
+    return {"status": "ok"}
