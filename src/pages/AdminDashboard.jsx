@@ -871,7 +871,7 @@ export default function AdminDashboard() {
                     />
                   </label>
                 </div>
-                <input required type="url" placeholder="Or paste image URL" value={presetData.imageUrl} onChange={(e) => setPresetData({...presetData, imageUrl: e.target.value})} className="w-full px-6 py-3 bg-stone-50 border border-stone-200 rounded-2xl text-sm mt-2" />
+                <input required type="text" placeholder="Or paste image path/URL" value={presetData.imageUrl} onChange={(e) => setPresetData({...presetData, imageUrl: e.target.value})} className="w-full px-6 py-3 bg-stone-50 border border-stone-200 rounded-2xl text-sm mt-2" />
               </div>
               <div className="space-y-2">
                 <label className="text-xs uppercase tracking-widest font-bold text-stone-500">Description</label>

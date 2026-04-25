@@ -250,7 +250,7 @@ export default function StaffDashboard() {
                   <p>{msg.text}</p>
                 </div>
                 <span className="text-[7px] uppercase tracking-widest font-bold text-stone-400 mt-1 px-1">
-                  {msg.senderName} • {msg.timestamp ? format(msg.timestamp.toDate(), 'HH:mm') : '...'}
+                  {msg.senderName} • {msg.timestamp ? format(msg.timestamp?.toDate ? msg.timestamp.toDate() : new Date(msg.timestamp), 'HH:mm') : '...'}
                 </span>
               </div>
             );

@@ -77,35 +77,18 @@ export default function GalleryPage() {
       }, 2000);
     };
 
-    if (!token) {
-      // If Cloudinary is not configured, use local Base64 fallback for demo purposes
-      console.warn('Backend not accessible. Using local fallback (Base64).');
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        try {
-          savePreset(reader.result);
-        } catch {
-          setUploadError('Image too large for local storage.');
-          setUploadLoading(false);
-        }
-      };
-      reader.onerror = () => {
-        setUploadError('Failed to read local image file.');
-        setUploadLoading(false);
-      };
-      reader.readAsDataURL(newPreset.image);
-      return;
-    }
-
     try {
       const formData = new FormData();
       formData.append('file', newPreset.image);
       
+      const headers = {};
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
       const response = await fetch('/api/upload/', {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
+        headers: headers,
         body: formData,
       });
       
@@ -273,12 +256,14 @@ export default function GalleryPage() {
                     Shared by: {preset.sharedBy}
                   </p>
                 )}
-                <Link 
-                  to={`/book?preset=${preset.id}`}
-                  className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.2em] font-bold text-accent-gold hover:gap-4 transition-all"
-                >
-                  Book this preset <ArrowRight size={14} />
-                </Link>
+                {!preset.isClientShared && (
+                  <Link 
+                    to={`/book?preset=${preset.id}`}
+                    className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.2em] font-bold text-accent-gold hover:gap-4 transition-all"
+                  >
+                    Book this preset <ArrowRight size={14} />
+                  </Link>
+                )}
               </div>
             </Motion.div>
           ))}
