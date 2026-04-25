@@ -14,51 +14,51 @@ export default function AdminLoginPage() {
     setLoading(true);
     setError('');
     
-    // Simple local check for demo/AI Studio purposes
-    const storedUsers = JSON.parse(localStorage.getItem('emis_users') || '[]');
-    const normalizedInput = username.trim().toLowerCase();
-    
-    // Find user by email or name (case-insensitive)
-    const foundUser = storedUsers.find(u => 
-      (u.email?.toLowerCase() === normalizedInput || u.name?.toLowerCase() === normalizedInput) && 
-      u.password === password
-    );
+    // Call Python API for login
+    const loginData = new URLSearchParams();
+    loginData.append('username', username);
+    loginData.append('password', password);
 
-    if (username === 'Admin123' && password === 'Admin123') {
+    fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: loginData
+    })
+    .then(async (res) => {
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.detail || 'Login failed');
+      }
+      return res.json();
+    })
+    .then(data => {
+      const token = data.access_token;
+      localStorage.setItem('token', token);
+      
+      // Fetch user profile
+      return fetch('/api/users/me', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+    })
+    .then(res => res.json())
+    .then(user => {
       const sessionData = {
-        uid: 'admin_123',
-        name: 'System Admin',
-        role: 'admin'
-      };
-      localStorage.setItem('admin_session', JSON.stringify(sessionData));
-      window.location.href = '/admin/dashboard';
-    } else if (foundUser) {
-      const sessionData = {
-        uid: foundUser.id,
-        name: foundUser.name,
-        role: foundUser.role
+        uid: user.id,
+        name: user.name,
+        role: user.role
       };
       localStorage.setItem('admin_session', JSON.stringify(sessionData));
       
-      // Redirect based on role
-      if (foundUser.role === 'admin') {
+      if (user.role === 'admin') {
         window.location.href = '/admin/dashboard';
       } else {
         window.location.href = '/staff/dashboard';
       }
-    } else {
-      // Check if user exists but password is wrong to provide better feedback
-      const userExists = storedUsers.some(u => 
-        u.email?.toLowerCase() === normalizedInput || u.name?.toLowerCase() === normalizedInput
-      );
-      
-      if (userExists) {
-        setError('Incorrect password. Please try again.');
-      } else {
-        setError('User not found. Check your username/email.');
-      }
+    })
+    .catch(err => {
+      setError(err.message || 'Invalid username or password.');
       setLoading(false);
-    }
+    });
   };
 
   return (
