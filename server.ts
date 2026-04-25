@@ -11,7 +11,7 @@ const __dirname = path.dirname(__filename);
 
 // --- PYTHON BACKEND MANAGER ---
 function startPythonBackend() {
-  console.log("Setting up Python backend...");
+  console.log("Starting Python backend...");
   
   // Detect if we should use 'python' or 'python3'
   const isWindows = process.platform === "win32";
@@ -19,28 +19,18 @@ function startPythonBackend() {
 
   console.log(`Using python command: ${pythonCmd}`);
   
-  // Install requirements
-  exec(`${pythonCmd} -m pip install -r backend/requirements.txt`, (err, stdout, stderr) => {
-    if (err) {
-      console.error("Failed to install Python dependencies. Ensure Python is in your PATH:", stderr);
-    } else {
-      console.log("Python dependencies checked/installed.");
-    }
-    
-    // Start Uvicorn
-    console.log("Starting FastAPI server...");
-    const pythonProcess = spawn(pythonCmd, ["-m", "uvicorn", "backend.app.main:app", "--port", "8000", "--host", "0.0.0.0"], {
-      stdio: "inherit",
-      shell: isWindows // Windows needs shell for some command resolutions
-    });
+  // Start Uvicorn directly without automatic install
+  const pythonProcess = spawn(pythonCmd, ["-m", "uvicorn", "backend.app.main:app", "--port", "8000", "--host", "0.0.0.0"], {
+    stdio: "inherit",
+    shell: isWindows
+  });
 
-    pythonProcess.on("error", (err) => {
-      console.error("Failed to start FastAPI server:", err);
-    });
+  pythonProcess.on("error", (err) => {
+    console.error("Failed to start FastAPI server:", err);
+  });
 
-    pythonProcess.on("close", (code) => {
-      console.log(`FastAPI server exited with code ${code}`);
-    });
+  pythonProcess.on("close", (code) => {
+    console.log(`FastAPI server exited with code ${code}`);
   });
 }
 

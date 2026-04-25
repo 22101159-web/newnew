@@ -1,5 +1,5 @@
 from jose import JWTError, jwt
-from .config import settings
+from ..config import settings
 
 def create_access_token(data: dict):
     to_encode = data.copy()

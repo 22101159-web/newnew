@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from ..database import get_db
 from ..services import auth_service
 from ..middleware import jwt_handler
-from ..schemas.user import Token, UserCreate, UserResponse
+from ..schemas.user import Token, UserCreate, UserResponse, UserLogin
 
 router = APIRouter()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/auth/login")
