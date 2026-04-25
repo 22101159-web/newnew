@@ -11,9 +11,10 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/auth/login")
 
 @router.post("/login", response_model=Token)
 def login(form_data: UserLogin, db: Session = Depends(get_db)):
-    # Support email or name
+    # Support email or name (case-insensitive)
+    username_lower = form_data.username.lower()
     user = db.query(auth_service.User).filter(
-        (auth_service.User.email == form_data.username) | (auth_service.User.name == form_data.username)
+        (auth_service.User.email.ilike(username_lower)) | (auth_service.User.name.ilike(username_lower))
     ).first()
     
     if not user or not auth_service.verify_password(form_data.password, user.password):

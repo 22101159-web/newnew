@@ -9,29 +9,39 @@ export default function AdminLoginPage() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
+  useEffect(() => {
+    // Clear any stale local login state on page load
+    localStorage.removeItem('admin_session');
+    localStorage.removeItem('token');
+  }, []);
+
   const handleSubmit = (e) => {
     e.preventDefault();
     setLoading(true);
     setError('');
-    console.log('Attempting login for:', username);
     
     // Call Node API for login
     fetch('/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password })
+      body: JSON.stringify({ username: username.trim(), password })
     })
     .then(async (res) => {
-      console.log('Login response status:', res.status);
-      if (!res.ok) {
-        const errData = await res.json();
-        throw new Error(errData.detail || 'Login failed');
+      const contentType = res.headers.get('content-type');
+      let errDetail = 'Login failed';
+      
+      if (contentType && contentType.includes('application/json')) {
+        const data = await res.json();
+        if (res.ok) return data;
+        errDetail = data.detail || errDetail;
+      } else {
+        errDetail = await res.text() || errDetail;
       }
-      return res.json();
+      
+      throw new Error(typeof errDetail === 'string' ? errDetail : JSON.stringify(errDetail));
     })
     .then(data => {
       const token = data.access_token;
-      console.log('Token received, fetching profile...');
       localStorage.setItem('token', token);
       
       // Fetch user profile
@@ -40,7 +50,6 @@ export default function AdminLoginPage() {
       });
     })
     .then(async (res) => {
-      console.log('Profile response status:', res.status);
       if (!res.ok) {
         const errData = await res.json();
         throw new Error(errData.detail || 'Failed to fetch user profile');
@@ -48,7 +57,6 @@ export default function AdminLoginPage() {
       return res.json();
     })
     .then(user => {
-      console.log('Profile received, user role:', user.role);
       const sessionData = {
         uid: user.id,
         name: user.name,
@@ -57,10 +65,8 @@ export default function AdminLoginPage() {
       localStorage.setItem('admin_session', JSON.stringify(sessionData));
       
       if (user.role === 'admin') {
-        console.log('Redirecting to admin dashboard');
         window.location.href = '/admin/dashboard';
       } else {
-        console.log('Redirecting to staff dashboard');
         window.location.href = '/staff/dashboard';
       }
     })
@@ -126,7 +132,7 @@ export default function AdminLoginPage() {
               <div className="p-4 bg-stone-50 rounded-xl border border-stone-200">
                 <p className="text-[10px] text-stone-400 uppercase tracking-widest text-center">
                   Try: Admin123 / Admin123<br/>
-                  Or: staff@example.com / Staff123
+                  (Username is NOT case-sensitive)
                 </p>
               </div>
             </div>
