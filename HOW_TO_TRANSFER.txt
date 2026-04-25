@@ -1,0 +1,46 @@
+HOW TO TRANSFER THIS PROJECT TO YOUR LOCAL PC (WINDOWS/MAC/LINUX)
+
+This is a Full-Stack application using Vite (Frontend) and Express (Backend) with SQLite.
+
+Prerequisites:
+1. Install Node.js (Version 18 or higher) from https://nodejs.org/
+2. A code editor like VS Code.
+
+Common Issues & Requirements:
+- Better-SQLite3: This package may require C++ build tools on your system (like Visual Studio Build Tools on Windows or XCode Command Line Tools on Mac). If `npm install` fails, ensure you have these installed.
+
+Steps to Setup:
+1. Export the project:
+   - Go to the Settings menu in AI Studio.
+   - Choose "Export to ZIP" or "Export to GitHub".
+   - Extract the ZIP file to a folder on your computer.
+
+2. Install Dependencies:
+   - Open a terminal/command prompt in the project folder.
+   - Run the following command:
+     npm install
+
+   This will install all necessary packages including:
+   - Frontend: React 19, Vite 6, Tailwind CSS 4, Framer Motion, Lucide Icons, FullCalendar.
+   - Backend: Express, JWT (for auth), Bcrypt (for security), Better-SQLite3 (database).
+   - Tools: tsx (to run TypeScript), Vite (build tool), PostCSS.
+
+3. Environment Variables:
+   - Copy '.env.example' to a new file named '.env'.
+   - Fill in any necessary keys if required (though the current app uses standard defaults).
+
+4. Run the Development Server:
+   - Run the following command:
+     npm run dev
+   - The app will start on http://localhost:3000
+
+5. Database:
+   - The application uses SQLite. The 'database.db' file will be automatically created and seeded in the root directory when you first run the server.
+
+6. Production Build:
+   - To build for production:
+     npm run build
+   - To start the production server:
+     npm start
+
+Enjoy your application!
