@@ -15,7 +15,7 @@ export default function Navbar({ user, role }) {
     <nav className="bg-white border-b border-stone-200 sticky top-0 z-50">
       <div className="container mx-auto px-4">
         <div className="flex justify-between items-center h-20">
-          <Link to="/" className="flex flex-col items-center">
+          <Link to={role === 'admin' ? '/admin/dashboard' : (role === 'staff' ? '/staff/dashboard' : '/')} className="flex flex-col items-center">
             <span className="text-2xl font-serif italic text-stone-900 leading-none">Gabrielle Custodio</span>
             <span className="text-[10px] uppercase tracking-[0.3em] text-accent-gold mt-1">Event Styling</span>
           </Link>
