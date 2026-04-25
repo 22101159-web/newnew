@@ -1,17 +1,15 @@
 ================================================================================
-GABRIELLE CUSTODIO EVENT STYLING - FULLSTACK TRANSFER GUIDE
+GABRIELLE CUSTODIO EVENT STYLING - FULLSTACK TRANSFER GUIDE (NODE.JS)
 ================================================================================
 
-This guide explains how to set up the enhanced project on your local PC, 
-including the new Python/FastAPI backend and the React frontend.
+This guide explains how to set up the project on your local PC using the
+Node.js (Express) backend.
 
 --------------------------------------------------------------------------------
 1. PREREQUISITES
 --------------------------------------------------------------------------------
 Before starting, ensure your PC has:
 - Node.js (v18 or higher): https://nodejs.org/
-- Python (v3.9 or higher): https://www.python.org/
-- Git (optional, for GitHub export): https://git-scm.com/
 
 --------------------------------------------------------------------------------
 2. EXPORTING THE PROJECT
@@ -22,59 +20,43 @@ Before starting, ensure your PC has:
 --------------------------------------------------------------------------------
 3. PROJECT STRUCTURE OVERVIEW
 --------------------------------------------------------------------------------
-Your project now has a dual-layer architecture:
-- /root: React Frontend, Vite Config, and the coordination script (server.ts).
-- /backend: Python FastAPI application, models, and database logic.
+Your project is built with a unified Node.js architecture:
+- /root: React Frontend, Configuration, and the server (server.ts).
+- /server: Backend logic, database setup, and authentication.
 
 --------------------------------------------------------------------------------
 4. INSTALLING DEPENDENCIES
 --------------------------------------------------------------------------------
-Open your terminal (VS Code Terminal or Command Prompt) in the root folder:
+Open your terminal in the root folder and run:
+   npm install
 
-A. Frontend/Coordination:
-   Run: npm install
-
-B. Python Backend:
-   Run: pip install -r backend/requirements.txt
-   (Or use a virtual environment: python -m venv venv && source venv/bin/activate)
+This will install all frontend and backend dependencies at once.
 
 --------------------------------------------------------------------------------
-5. CONFIGURATION (.env Files)
+5. CONFIGURATION (.env File)
 --------------------------------------------------------------------------------
-You need two .env files:
+Create a file named .env in the root directory and add your keys:
 
-A. ROOT DIRECTORY (.env):
-   Create a file named .env in the root and add:
-   GEMINI_API_KEY=your_gemini_key
-   VITE_CLOUDINARY_CLOUD_NAME=your_cloudinary_name
-   VITE_CLOUDINARY_UPLOAD_PRESET=your_preset
-
-B. BACKEND DIRECTORY (backend/.env):
-   Navigate to the backend folder and ensure .env contains:
-   SECRET_KEY=your_secure_random_string_here
-   ALGORITHM=HS256
-   DATABASE_URL=sqlite:///./sql_app.db
+GEMINI_API_KEY=your_gemini_key
+VITE_CLOUDINARY_CLOUD_NAME=your_cloudinary_name
+VITE_CLOUDINARY_UPLOAD_PRESET=your_preset
+SECRET_KEY=your_secure_random_string_here
 
 --------------------------------------------------------------------------------
 6. RUNNING THE APPLICATION
 --------------------------------------------------------------------------------
-The project is configured to run both the Node.js server and the Python 
-backend simultaneously using a single command.
-
 In the root folder, run:
 npm run dev
 
-This command triggers:
-1. The Express bridge server (server.ts).
-2. The Vite development server for the React frontend.
-3. The Uvicorn server for the Python FastAPI backend (Port 8000).
+This will start the integrated server that handles both the API and the 
+React frontend.
 
 Open http://localhost:3000 in your browser.
 
 --------------------------------------------------------------------------------
 7. AUTHENTICATION & DATABASE
 --------------------------------------------------------------------------------
-- The system uses SQLite (`sql_app.db`) locally.
+- The system uses SQLite (`database.db`) locally.
 - On the first run, it will automatically create the database and seed an 
   initial admin:
   Email/Username: admin@example.com

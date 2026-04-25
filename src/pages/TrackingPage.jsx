@@ -368,7 +368,7 @@ export default function TrackingPage() {
                     <div className="flex items-center gap-2 mt-2 px-2">
                       <span className="text-[8px] uppercase tracking-widest font-bold text-stone-400">{msg.senderName}</span>
                       <span className="text-[8px] text-stone-200">•</span>
-                      <span className="text-[8px] text-stone-400 font-medium">{msg.timestamp ? format(msg.timestamp.toDate(), 'HH:mm') : 'Just now'}</span>
+                      <span className="text-[8px] text-stone-400 font-medium">{msg.timestamp ? format(new Date(msg.timestamp), 'HH:mm') : 'Just now'}</span>
                     </div>
                   </div>
                 );

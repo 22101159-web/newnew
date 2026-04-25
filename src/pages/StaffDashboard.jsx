@@ -151,7 +151,9 @@ export default function StaffDashboard() {
                 <span className={`text-[8px] uppercase tracking-widest font-bold px-2 py-0.5 rounded-full border ${selectedEvent?.id === event.id ? 'border-white/20 bg-white/10' : 'border-stone-200 bg-stone-50 text-stone-500'}`}>
                   {event.status}
                 </span>
-                <span className={`text-[8px] ${selectedEvent?.id === event.id ? 'text-white/80' : 'text-stone-400'}`}>{format(new Date(event.eventDate), 'MMM dd')}</span>
+                <span className={`text-[8px] ${selectedEvent?.id === event.id ? 'text-white/80' : 'text-stone-400'}`}>
+                  {event.eventDate ? format(new Date(event.eventDate), 'MMM dd') : 'No Date'}
+                </span>
               </div>
             </button>
           ))}
@@ -167,7 +169,9 @@ export default function StaffDashboard() {
                 <div className="space-y-2">
                   <span className="text-[10px] uppercase tracking-widest text-stone-400">Selected Event</span>
                   <h2 className="text-4xl font-serif italic text-stone-900">{selectedEvent.clientName}</h2>
-                  <p className="text-xs uppercase tracking-widest text-stone-500">{selectedEvent.eventType} • {format(new Date(selectedEvent.eventDate), 'MMMM dd, yyyy')}</p>
+                  <p className="text-xs uppercase tracking-widest text-stone-500">
+                    {selectedEvent.eventType} • {selectedEvent.eventDate ? format(new Date(selectedEvent.eventDate), 'MMMM dd, yyyy') : 'No Date'}
+                  </p>
                 </div>
                 <Link to={`/track/${selectedEvent.id}`} target="_blank" className="text-[10px] uppercase tracking-widest font-bold text-stone-400 hover:text-accent-gold flex items-center gap-1 transition-all">
                   Public Link <ArrowRight size={12} />
@@ -251,7 +255,7 @@ export default function StaffDashboard() {
                   <p>{msg.text}</p>
                 </div>
                 <span className="text-[7px] uppercase tracking-widest font-bold text-stone-400 mt-1 px-1">
-                  {msg.senderName} • {msg.timestamp ? format(msg.timestamp.toDate(), 'HH:mm') : '...'}
+                  {msg.senderName} • {msg.timestamp ? format(new Date(msg.timestamp), 'HH:mm') : '...'}
                 </span>
               </div>
             );

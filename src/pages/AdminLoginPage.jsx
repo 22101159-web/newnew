@@ -13,18 +13,16 @@ export default function AdminLoginPage() {
     e.preventDefault();
     setLoading(true);
     setError('');
+    console.log('Attempting login for:', username);
     
-    // Call Python API for login
-    const loginData = new URLSearchParams();
-    loginData.append('username', username);
-    loginData.append('password', password);
-
+    // Call Node API for login
     fetch('/api/auth/login', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: loginData
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
     })
     .then(async (res) => {
+      console.log('Login response status:', res.status);
       if (!res.ok) {
         const errData = await res.json();
         throw new Error(errData.detail || 'Login failed');
@@ -33,6 +31,7 @@ export default function AdminLoginPage() {
     })
     .then(data => {
       const token = data.access_token;
+      console.log('Token received, fetching profile...');
       localStorage.setItem('token', token);
       
       // Fetch user profile
@@ -40,8 +39,16 @@ export default function AdminLoginPage() {
         headers: { 'Authorization': `Bearer ${token}` }
       });
     })
-    .then(res => res.json())
+    .then(async (res) => {
+      console.log('Profile response status:', res.status);
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.detail || 'Failed to fetch user profile');
+      }
+      return res.json();
+    })
     .then(user => {
+      console.log('Profile received, user role:', user.role);
       const sessionData = {
         uid: user.id,
         name: user.name,
@@ -50,12 +57,15 @@ export default function AdminLoginPage() {
       localStorage.setItem('admin_session', JSON.stringify(sessionData));
       
       if (user.role === 'admin') {
+        console.log('Redirecting to admin dashboard');
         window.location.href = '/admin/dashboard';
       } else {
+        console.log('Redirecting to staff dashboard');
         window.location.href = '/staff/dashboard';
       }
     })
     .catch(err => {
+      console.error('Login flow error:', err);
       setError(err.message || 'Invalid username or password.');
       setLoading(false);
     });
@@ -111,7 +121,15 @@ export default function AdminLoginPage() {
           </div>
 
           {error && (
-            <p className="text-xs text-red-500 uppercase tracking-widest text-center font-bold">{error}</p>
+            <div className="space-y-2">
+              <p className="text-xs text-red-500 uppercase tracking-widest text-center font-bold">{error}</p>
+              <div className="p-4 bg-stone-50 rounded-xl border border-stone-200">
+                <p className="text-[10px] text-stone-400 uppercase tracking-widest text-center">
+                  Try: Admin123 / Admin123<br/>
+                  Or: staff@example.com / Staff123
+                </p>
+              </div>
+            </div>
           )}
 
           <button 
