@@ -8,7 +8,11 @@ Prerequisites:
 3. A code editor like VS Code.
 
 Common Issues & Requirements:
-- Python Environment: Ensure `python3` and `pip` are in your PATH.
+- Python Environment: Ensure `python` and `pip` are in your PATH.
+- Error 9009 (Windows): If you see "Python was not found", you must:
+    1. Search "Manage app execution aliases" in Windows Start.
+    2. Turn OFF the switches for "python.exe" and "python3.exe".
+    3. Ensure Python is installed from python.org and "Add to PATH" was checked.
 - SQLite: The application uses SQLite, which is built into Python. No separate installation is needed for the database engine.
 
 Steps to Setup:
@@ -42,7 +46,11 @@ Steps to Setup:
 
 5. Database:
    - The application uses SQLite. The 'database.db' file will be automatically created and seeded in the root directory when you first run the server.
-   - Default Admin Password: Admin123
+   - Login Credentials:
+     - Admin Email: admin@example.com
+     - Admin Name: Admin123
+     - Password: Admin123
+     - Role: admin
 
 6. Production Build:
    - To build for production:

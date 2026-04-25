@@ -13,19 +13,25 @@ const __dirname = path.dirname(__filename);
 function startPythonBackend() {
   console.log("Setting up Python backend...");
   
+  // Detect if we should use 'python' or 'python3'
+  const isWindows = process.platform === "win32";
+  const pythonCmd = isWindows ? "python" : "python3";
+
+  console.log(`Using python command: ${pythonCmd}`);
+  
   // Install requirements
-  exec("pip install -r backend/requirements.txt", (err, stdout, stderr) => {
+  exec(`${pythonCmd} -m pip install -r backend/requirements.txt`, (err, stdout, stderr) => {
     if (err) {
-      console.error("Failed to install Python dependencies:", stderr);
-      // We'll try to start anyway in case they are already there
+      console.error("Failed to install Python dependencies. Ensure Python is in your PATH:", stderr);
     } else {
-      console.log("Python dependencies installed.");
+      console.log("Python dependencies checked/installed.");
     }
     
     // Start Uvicorn
     console.log("Starting FastAPI server...");
-    const pythonProcess = spawn("python3", ["-m", "uvicorn", "backend.app.main:app", "--port", "8000", "--host", "0.0.0.0"], {
-      stdio: "inherit"
+    const pythonProcess = spawn(pythonCmd, ["-m", "uvicorn", "backend.app.main:app", "--port", "8000", "--host", "0.0.0.0"], {
+      stdio: "inherit",
+      shell: isWindows // Windows needs shell for some command resolutions
     });
 
     pythonProcess.on("error", (err) => {
