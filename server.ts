@@ -17,6 +17,10 @@ async function start() {
       cwd: path.join(__dirname, 'backend'),
       stdio: 'inherit' 
     });
+    p.on('error', (err) => {
+      console.warn("Python executable not found or error spawning: ", err.message);
+      resolve(false);
+    });
     p.on('close', (code) => {
       if (code === 0) resolve(true);
       else reject(new Error(`pip install failed with code ${code}`));
@@ -27,6 +31,10 @@ async function start() {
   const pythonServer = spawn(pythonCmd, ['-m', 'uvicorn', 'app.main:app', '--host', '127.0.0.1', '--port', '8000'], {
     cwd: path.join(__dirname, 'backend'),
     stdio: 'inherit'
+  });
+
+  pythonServer.on('error', (err) => {
+    console.error("Python Server failed to start:", err.message);
   });
 
   pythonServer.on('close', (code) => {
