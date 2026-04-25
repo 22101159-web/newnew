@@ -81,16 +81,20 @@ export default function TrackingPage() {
     if (!id) return;
 
     const loadEvent = () => {
-      const events = JSON.parse(localStorage.getItem('emis_events') || '[]');
-      // Search by ID or tracking number
-      const foundEvent = events.find(e => e.id === id || e.trackingNumber === id);
-      
-      if (foundEvent) {
+      fetch(`/api/public/events/${id}`)
+      .then(res => {
+        if (!res.ok) throw new Error('Event not found');
+        return res.json();
+      })
+      .then(foundEvent => {
         setEvent(foundEvent);
         
         // Load messages
-        const allMessages = JSON.parse(localStorage.getItem('emis_messages') || '{}');
-        setMessages(allMessages[foundEvent.id] || []);
+        fetch(`/api/messages/${foundEvent.id}`)
+        .then(res => res.json())
+        .then(msgs => {
+          if (Array.isArray(msgs)) setMessages(msgs);
+        });
         
         // Load preset
         if (foundEvent.presetId) {
@@ -103,16 +107,19 @@ export default function TrackingPage() {
             setPreset(communityPreset || null);
           }
         }
-      } else {
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error('Error loading event:', err);
         setEvent(null);
-      }
-      setLoading(false);
+        setLoading(false);
+      });
     };
 
     loadEvent();
     
-    // Polling for local storage changes (simulating real-time)
-    const interval = setInterval(loadEvent, 2000);
+    // Polling for updates
+    const interval = setInterval(loadEvent, 5000);
     return () => clearInterval(interval);
   }, [id]);
 
@@ -124,23 +131,24 @@ export default function TrackingPage() {
     e.preventDefault();
     if (!newMessage.trim() || !event) return;
 
-    const allMessages = JSON.parse(localStorage.getItem('emis_messages') || '{}');
-    const eventMessages = allMessages[event.id] || [];
-    
     const newMsg = {
-      id: `msg_${Date.now()}`,
+      eventId: event.id,
       text: newMessage,
       senderName: event.clientName,
-      senderRole: 'client',
-      timestamp: new Date().toISOString()
+      senderRole: 'client'
     };
     
-    eventMessages.push(newMsg);
-    allMessages[event.id] = eventMessages;
-    localStorage.setItem('emis_messages', JSON.stringify(allMessages));
-    
-    setMessages(eventMessages);
-    setNewMessage('');
+    fetch('/api/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newMsg)
+    })
+    .then(res => res.json())
+    .then(data => {
+      setMessages(prev => [...prev, data]);
+      setNewMessage('');
+    })
+    .catch(err => console.error('Error sending message:', err));
   };
 
   if (loading) {

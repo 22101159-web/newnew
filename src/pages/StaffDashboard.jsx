@@ -26,58 +26,92 @@ export default function StaffDashboard() {
   }, []);
 
   useEffect(() => {
-    const loadEvents = () => {
-      const storedEvents = JSON.parse(localStorage.getItem('emis_events') || '[]');
-      setEvents(storedEvents);
-      if (storedEvents.length > 0 && !selectedEvent) {
-        setSelectedEvent(storedEvents[0]);
-      }
-      setLoading(false);
+    const fetchEvents = () => {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+
+      fetch('/api/events', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          setEvents(data);
+          // Auto-select first event if none selected
+          if (data.length > 0 && !selectedEvent) {
+            setSelectedEvent(data[0]);
+          }
+        }
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error('Error fetching events:', err);
+        setLoading(false);
+      });
     };
 
-    loadEvents();
+    fetchEvents();
     
-    // Polling for local storage changes
-    const interval = setInterval(loadEvents, 2000);
+    // Polling for updates
+    const interval = setInterval(fetchEvents, 5000);
     return () => clearInterval(interval);
-  }, []);
+  }, [selectedEvent?.id]);
 
   useEffect(() => {
     if (!selectedEvent) return;
 
     const loadMessages = () => {
-      const allMessages = JSON.parse(localStorage.getItem('emis_messages') || '{}');
-      setMessages(allMessages[selectedEvent.id] || []);
+      fetch(`/api/messages/${selectedEvent.id}`)
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          setMessages(data);
+        }
+      })
+      .catch(err => console.error('Error fetching messages:', err));
     };
 
     loadMessages();
     
-    // Polling for local storage changes
-    const interval = setInterval(loadMessages, 2000);
+    // Polling for messages
+    const interval = setInterval(loadMessages, 3000);
     return () => clearInterval(interval);
   }, [selectedEvent?.id]);
 
   const handleStatusUpdate = (newStatus) => {
-    const storedEvents = JSON.parse(localStorage.getItem('emis_events') || '[]');
-    const updatedEvents = storedEvents.map(e => e.id === selectedEvent.id ? { ...e, status: newStatus } : e);
-    localStorage.setItem('emis_events', JSON.stringify(updatedEvents));
-    setEvents(updatedEvents);
-    setSelectedEvent(prev => ({ ...prev, status: newStatus }));
+    const token = localStorage.getItem('token');
+    if (!token || !selectedEvent) return;
+
+    fetch(`/api/events/${selectedEvent.id}`, {
+      method: 'PUT',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ status: newStatus })
+    })
+    .then(res => res.json())
+    .then(updatedEvent => {
+      setEvents(prev => prev.map(e => e.id === updatedEvent.id ? updatedEvent : e));
+      setSelectedEvent(updatedEvent);
+    })
+    .catch(err => alert('Failed to update status'));
   };
 
   const handlePhotoUpload = async (e) => {
     const file = e.target.files[0];
-    if (!file) return;
+    if (!file || !selectedEvent) return;
 
     setUploading(true);
+    const token = localStorage.getItem('token');
     
     try {
       const formData = new FormData();
       formData.append('file', file);
-      formData.append('upload_preset', import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET);
+      formData.append('upload_preset', import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || 'emis_event_styling_system');
       
       const response = await fetch(
-        `https://api.cloudinary.com/v1_1/${import.meta.env.VITE_CLOUDINARY_CLOUD_NAME}/image/upload`,
+        `https://api.cloudinary.com/v1_1/${import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || 'dvjurrrd8'}/image/upload`,
         {
           method: 'POST',
           body: formData,
@@ -87,19 +121,30 @@ export default function StaffDashboard() {
       const data = await response.json();
       
       if (data.secure_url) {
-        const storedEvents = JSON.parse(localStorage.getItem('emis_events') || '[]');
         const updatedPhotos = [...(selectedEvent.statusPhotos || []), data.secure_url];
-        const updatedEvents = storedEvents.map(e => e.id === selectedEvent.id ? { ...e, statusPhotos: updatedPhotos } : e);
         
-        localStorage.setItem('emis_events', JSON.stringify(updatedEvents));
-        setEvents(updatedEvents);
-        setSelectedEvent(prev => ({ ...prev, statusPhotos: updatedPhotos }));
+        const updateRes = await fetch(`/api/events/${selectedEvent.id}`, {
+          method: 'PUT',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ statusPhotos: updatedPhotos })
+        });
+
+        if (updateRes.ok) {
+          const updatedEvent = await updateRes.json();
+          setEvents(prev => prev.map(e => e.id === updatedEvent.id ? updatedEvent : e));
+          setSelectedEvent(updatedEvent);
+        } else {
+          throw new Error('Failed to update event record');
+        }
       } else {
         throw new Error(data.error?.message || 'Upload failed');
       }
     } catch (error) {
       console.error('Upload error:', error);
-      alert('Failed to upload photo. Please try again.');
+      alert(`Failed to upload photo: ${error.message}. Please check your internet connection or Cloudinary configuration.`);
     } finally {
       setUploading(false);
     }
@@ -109,23 +154,24 @@ export default function StaffDashboard() {
     e.preventDefault();
     if (!newMessage.trim() || !selectedEvent) return;
 
-    const allMessages = JSON.parse(localStorage.getItem('emis_messages') || '{}');
-    const eventMessages = allMessages[selectedEvent.id] || [];
-    
     const newMsg = {
-      id: `msg_${Date.now()}`,
+      eventId: selectedEvent.id,
       text: newMessage,
       senderName: staffName,
-      senderRole: 'staff',
-      timestamp: new Date().toISOString()
+      senderRole: 'staff'
     };
     
-    eventMessages.push(newMsg);
-    allMessages[selectedEvent.id] = eventMessages;
-    localStorage.setItem('emis_messages', JSON.stringify(allMessages));
-    
-    setMessages(eventMessages);
-    setNewMessage('');
+    fetch('/api/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newMsg)
+    })
+    .then(res => res.json())
+    .then(data => {
+      setMessages(prev => [...prev, data]);
+      setNewMessage('');
+    })
+    .catch(err => console.error('Error sending message:', err));
   };
 
   if (loading) return <div className="flex items-center justify-center min-h-[60vh]"><div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-stone-800"></div></div>;

@@ -119,14 +119,25 @@ export default function AdminDashboard() {
   };
 
   useEffect(() => {
+    const fetchEventsFromAPI = () => {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+
+      fetch('/api/events', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          setEvents(data);
+        }
+      })
+      .catch(err => console.error('Error fetching events:', err));
+    };
+
     const loadData = () => {
       try {
-        // Load events
-        const storedEvents = JSON.parse(localStorage.getItem('emis_events') || '[]');
-        if (Array.isArray(storedEvents)) {
-          setEvents(storedEvents);
-        }
-
+        fetchEventsFromAPI();
         // Load presets
         const communityPresets = JSON.parse(localStorage.getItem('emis_community_presets') || '[]');
         const communityIds = Array.isArray(communityPresets) ? communityPresets.map(p => p.id) : [];
@@ -137,7 +148,7 @@ export default function AdminDashboard() {
         ];
         setPresets(allPresets);
       } catch (err) {
-        console.error('Error loading data from localStorage:', err);
+        console.error('Error loading data:', err);
       }
 
       setLoading(false);
@@ -146,13 +157,13 @@ export default function AdminDashboard() {
     loadData();
     fetchUsers();
     
-    // Polling for local storage changes
-    const interval = setInterval(loadData, 2000);
-    const userInterval = setInterval(fetchUsers, 10000); // Fetch users every 10s
-    return () => {
-      clearInterval(interval);
-      clearInterval(userInterval);
-    };
+    // Polling for updates
+    const interval = setInterval(() => {
+      fetchEventsFromAPI();
+      fetchUsers();
+    }, 5000);
+
+    return () => clearInterval(interval);
   }, []);
 
   const eventsArray = Array.isArray(events) ? events : [];
@@ -194,12 +205,13 @@ export default function AdminDashboard() {
 
   const handleSaveBooking = (e) => {
     e.preventDefault();
+    const token = localStorage.getItem('token');
     
     // Check for conflicts (Only ONE event per day)
-    const hasConflict = events.some(e => 
-      e.eventDate === formData.eventDate && 
-      e.id !== selectedEvent?.id &&
-      e.status !== 'Cancelled'
+    const hasConflict = events.some(ev => 
+      ev.eventDate === formData.eventDate && 
+      ev.id !== selectedEvent?.id &&
+      ev.status !== 'Cancelled'
     );
 
     if (hasConflict) {
@@ -207,36 +219,62 @@ export default function AdminDashboard() {
       return;
     }
 
-    const storedEvents = JSON.parse(localStorage.getItem('emis_events') || '[]');
-    let updatedEvents;
-
     if (selectedEvent) {
-      updatedEvents = storedEvents.map(e => e.id === selectedEvent.id ? { ...e, ...formData } : e);
+      fetch(`/api/events/${selectedEvent.id}`, {
+        method: 'PUT',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ ...formData })
+      })
+      .then(res => res.json())
+      .then(data => {
+        setEvents(prev => prev.map(evt => evt.id === data.id ? data : evt));
+        setIsModalOpen(false);
+      })
+      .catch(err => alert(err.message));
     } else {
       const trackingNumber = `GC-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
       const newEvent = {
         ...formData,
         id: `event_${Date.now()}`,
-        trackingNumber,
-        createdAt: new Date().toISOString(),
-        statusPhotos: []
+        trackingNumber
       };
-      updatedEvents = [newEvent, ...storedEvents];
+
+      fetch('/api/events', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(newEvent)
+      })
+      .then(res => res.json())
+      .then(data => {
+        setEvents(prev => [data, ...prev]);
+        setIsModalOpen(false);
+      })
+      .catch(err => alert(err.message));
     }
-    
-    localStorage.setItem('emis_events', JSON.stringify(updatedEvents));
-    setEvents(updatedEvents);
-    setIsModalOpen(false);
   };
 
   const handleDeleteBooking = (id) => {
-    const storedEvents = JSON.parse(localStorage.getItem('emis_events') || '[]');
-    const updatedEvents = storedEvents.filter(e => e.id !== id);
-    localStorage.setItem('emis_events', JSON.stringify(updatedEvents));
-    setEvents(updatedEvents);
-    setIsModalOpen(false);
-    setSelectedEvent(null);
-    setDeleteConfirmId(null);
+    if (!window.confirm('Are you sure you want to delete this booking?')) return;
+    const token = localStorage.getItem('token');
+    
+    fetch(`/api/events/${id}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+    .then(res => res.json())
+    .then(() => {
+      setEvents(prev => prev.filter(e => e.id !== id));
+      setIsModalOpen(false);
+      setSelectedEvent(null);
+      setDeleteConfirmId(null);
+    })
+    .catch(err => alert(err.message));
   };
 
   const handleCompleteBooking = (id) => {
