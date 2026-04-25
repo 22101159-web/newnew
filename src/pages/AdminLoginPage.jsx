@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Lock, User, ArrowRight, ArrowLeft } from 'lucide-react';
 
@@ -33,12 +33,18 @@ export default function AdminLoginPage() {
       if (contentType && contentType.includes('application/json')) {
         const data = await res.json();
         if (res.ok) return data;
-        errDetail = data.detail || errDetail;
+        
+        // Handle FastAPI validation error detail
+        let detail = data.detail || 'Login failed';
+        if (typeof detail !== 'string') {
+          detail = JSON.stringify(detail);
+        }
+        errDetail = detail;
       } else {
         errDetail = await res.text() || errDetail;
       }
       
-      throw new Error(typeof errDetail === 'string' ? errDetail : JSON.stringify(errDetail));
+      throw new Error(String(errDetail));
     })
     .then(data => {
       const token = data.access_token;
@@ -65,14 +71,15 @@ export default function AdminLoginPage() {
       localStorage.setItem('admin_session', JSON.stringify(sessionData));
       
       if (user.role === 'admin') {
-        window.location.href = '/admin/dashboard';
+        navigate('/admin/dashboard');
       } else {
-        window.location.href = '/staff/dashboard';
+        navigate('/staff/dashboard');
       }
     })
     .catch(err => {
       console.error('Login flow error:', err);
-      setError(err.message || 'Invalid username or password.');
+      const msg = err instanceof Error ? err.message : String(err);
+      setError(msg || 'Invalid username or password.');
       setLoading(false);
     });
   };
@@ -127,11 +134,15 @@ export default function AdminLoginPage() {
           </div>
 
           {error && (
-            <div className="space-y-2">
-              <p className="text-xs text-red-500 uppercase tracking-widest text-center font-bold">{error}</p>
+            <div className="space-y-4">
+              <div className="bg-red-50 p-4 rounded-2xl border border-red-100">
+                <p className="text-[10px] text-red-600 uppercase tracking-widest text-center font-bold break-all">
+                  {String(error)}
+                </p>
+              </div>
               <div className="p-4 bg-stone-50 rounded-xl border border-stone-200">
                 <p className="text-[10px] text-stone-400 uppercase tracking-widest text-center">
-                  Try: Admin123 / Admin123<br/>
+                  Try: admin123 / admin123<br/>
                   (Username is NOT case-sensitive)
                 </p>
               </div>

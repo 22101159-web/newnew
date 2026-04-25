@@ -16,17 +16,34 @@ function startPythonBackend() {
   // Detect if we should use 'python' or 'python3'
   const isWindows = process.platform === "win32";
   const pythonCmd = isWindows ? "python" : "python3";
-
-  console.log(`Using python command: ${pythonCmd}`);
   
-  // Start Uvicorn directly without automatic install
+  // Basic check if the command exists
+  exec(`${pythonCmd} --version`, (err) => {
+    if (err) {
+      console.error(`Command ${pythonCmd} failed, trying alternative...`);
+      // Fallback
+      if (pythonCmd === "python3") {
+        spawnPython("python");
+      } else {
+        console.error("No valid python command found.");
+      }
+    } else {
+      spawnPython(pythonCmd);
+    }
+  });
+}
+
+function spawnPython(pythonCmd: string) {
+  console.log(`Starting Python backend with: ${pythonCmd}`);
+  
+  // Start Uvicorn
   const pythonProcess = spawn(pythonCmd, ["-m", "uvicorn", "backend.app.main:app", "--port", "8000", "--host", "0.0.0.0"], {
     stdio: "inherit",
-    shell: isWindows
+    shell: process.platform === "win32"
   });
 
   pythonProcess.on("error", (err) => {
-    console.error("Failed to start FastAPI server:", err);
+    console.error("Failed to start FastAPI server (spawn error):", err);
   });
 
   pythonProcess.on("close", (code) => {
@@ -71,8 +88,12 @@ async function startServer() {
         res.status(status).send(text);
       }
     } catch (err: any) {
-      console.error("Proxy error:", err.message);
-      res.status(502).json({ detail: "Backend unresponsive. Please wait for FastAPI to initialize." });
+      console.error("Proxy error:", req.method, req.originalUrl, err.message);
+      res.status(502).json({ 
+        detail: "Backend connection failed", 
+        error: err.message,
+        hint: "The Python backend might still be starting or failed to start. Check terminal logs."
+      });
     }
   });
 

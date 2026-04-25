@@ -28,14 +28,14 @@ def seed_admin():
         if not exists:
             admin = User(
                 id=str(uuid.uuid4()),
-                name="Admin123",
+                name="admin123",
                 email=admin_email,
-                password=auth_service.get_password_hash("Admin123"),
+                password=auth_service.get_password_hash("admin123"),
                 role="admin"
             )
             db.add(admin)
             db.commit()
-            print("Admin user seeded (Admin123 / Admin123).")
+            print("Admin user seeded (admin123 / admin123).")
     finally:
         db.close()
 

@@ -48,8 +48,8 @@ Steps to Setup:
    - The application uses SQLite. The 'database.db' file will be automatically created and seeded in the root directory when you first run the server.
    - Login Credentials:
      - Admin Email: admin@example.com
-     - Admin Name: Admin123
-     - Password: Admin123
+     - Admin Name: admin123
+     - Password: admin123
      - Role: admin
 
 6. Production Build:
