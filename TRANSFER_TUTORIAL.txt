@@ -7,9 +7,8 @@ Since you are exporting this project directly from AI Studio, you don't need to 
 
 Phase 1: Download the Code
 --------------------------
-1. Click the "Settings" menu in the top right corner of AI Studio.
-2. Select "Export to ZIP" (or export it to GitHub and clone the repository).
-3. Extract the downloaded ZIP file to somewhere on your computer.
+1. Download file on GitHub.
+2. Extract the downloaded ZIP file to somewhere on your computer.
 
 Phase 2: Preparations
 ---------------------
