@@ -176,6 +176,18 @@ export default function AdminDashboard() {
       return;
     }
 
+    const sameContactEvents = events.filter(e => 
+      e.id !== selectedEvent?.id && (
+        (e.clientPhone === formData.clientPhone && e.clientEmail !== formData.clientEmail) ||
+        (e.clientEmail === formData.clientEmail && e.clientPhone !== formData.clientPhone)
+      )
+    );
+
+    if (sameContactEvents.length > 0) {
+      alert('The email address or phone number is already registered to a different customer.');
+      return;
+    }
+
     const storedEvents = JSON.parse(localStorage.getItem('emis_events') || '[]');
     let updatedEvents;
 

@@ -117,7 +117,20 @@ export default function TrackingPage() {
   }, [id]);
 
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    window.scrollTo(0, 0);
+  }, []);
+
+  useEffect(() => {
+    if (chatEndRef.current) {
+      const parent = chatEndRef.current.parentElement;
+      if (parent) {
+        // Only scroll the chat container, avoiding window scroll
+        parent.scrollTo({
+          top: parent.scrollHeight,
+          behavior: 'smooth'
+        });
+      }
+    }
   }, [messages.length]);
 
   const handleSendMessage = (e) => {

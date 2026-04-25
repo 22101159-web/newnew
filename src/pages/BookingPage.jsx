@@ -10,6 +10,7 @@ export default function BookingPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
+  const [direction, setDirection] = useState(0);
   const [loading, setLoading] = useState(false);
   const [takenDates, setTakenDates] = useState([]);
   const [presetFilter, setPresetFilter] = useState('All');
@@ -24,6 +25,21 @@ export default function BookingPage() {
     presetId: searchParams.get('preset') || '',
     notes: ''
   });
+
+  const variants = {
+    enter: (dir) => ({
+      x: dir > 0 ? 20 : -20,
+      opacity: 0,
+    }),
+    center: {
+      x: 0,
+      opacity: 1,
+    },
+    exit: (dir) => ({
+      x: dir < 0 ? 20 : -20,
+      opacity: 0,
+    })
+  };
 
   useEffect(() => {
     // If a preset is passed via URL, set the eventType to match that preset
@@ -69,6 +85,17 @@ export default function BookingPage() {
 
       if (hasConflict) {
         alert('CONFLICT: This date has just been booked by someone else. Please select another date.');
+        setLoading(false);
+        return;
+      }
+
+      const sameContactEvents = events.filter(e => 
+        (e.clientPhone === formData.clientPhone && e.clientEmail !== formData.clientEmail) ||
+        (e.clientEmail === formData.clientEmail && e.clientPhone !== formData.clientPhone)
+      );
+
+      if (sameContactEvents.length > 0) {
+        alert('The email address or phone number is already registered to a different customer.');
         setLoading(false);
         return;
       }
@@ -123,13 +150,15 @@ export default function BookingPage() {
 
       <div className="bg-white rounded-[40px] border border-stone-100 shadow-2xl overflow-hidden">
         <form onSubmit={handleSubmit}>
-          <AnimatePresence mode="wait">
+          <AnimatePresence mode="wait" custom={direction}>
             {step === 1 && (
               <Motion.div 
                 key="step1"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
+                custom={direction}
+                variants={variants}
+                initial="enter"
+                animate="center"
+                exit="exit"
                 className="p-8 md:p-12 space-y-8"
               >
                 <div className="grid md:grid-cols-2 gap-8">
@@ -193,7 +222,20 @@ export default function BookingPage() {
                   </button>
                   <button 
                     type="button"
-                    onClick={() => setStep(2)}
+                    onClick={() => { 
+                      const inputs = document.querySelectorAll('input[required], select[required]');
+                      let isValid = true;
+                      inputs.forEach(input => {
+                        if (!input.checkValidity()) {
+                          input.reportValidity();
+                          isValid = false;
+                        }
+                      });
+                      if (isValid) {
+                        setDirection(1); 
+                        setStep(2); 
+                      }
+                    }}
                     className="bg-stone-900 text-white px-10 py-4 rounded-full font-bold uppercase tracking-widest flex items-center gap-2 hover:bg-stone-800 transition-all shadow-lg"
                   >
                     Next Step <ArrowRight size={18} />
@@ -205,9 +247,11 @@ export default function BookingPage() {
             {step === 2 && (
               <Motion.div 
                 key="step2"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
+                custom={direction}
+                variants={variants}
+                initial="enter"
+                animate="center"
+                exit="exit"
                 className="p-8 md:p-12 space-y-8"
               >
                 <div className="space-y-6">
@@ -286,14 +330,21 @@ export default function BookingPage() {
                 <div className="flex justify-between">
                   <button 
                     type="button"
-                    onClick={() => setStep(1)}
+                    onClick={() => { setDirection(-1); setStep(1); }}
                     className="text-stone-400 px-6 py-4 rounded-full font-bold uppercase tracking-widest flex items-center gap-2 hover:text-stone-900 transition-all"
                   >
                     <ArrowLeft size={18} /> Back
                   </button>
                   <button 
                     type="button"
-                    onClick={() => setStep(3)}
+                    onClick={() => { 
+                      if (!formData.presetId) {
+                        alert('Please select a preset design.');
+                        return;
+                      }
+                      setDirection(1); 
+                      setStep(3); 
+                    }}
                     className="bg-stone-900 text-white px-10 py-4 rounded-full font-bold uppercase tracking-widest flex items-center gap-2 hover:bg-stone-800 transition-all shadow-lg"
                   >
                     Next Step <ArrowRight size={18} />
@@ -305,9 +356,11 @@ export default function BookingPage() {
             {step === 3 && (
               <Motion.div 
                 key="step3"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
+                custom={direction}
+                variants={variants}
+                initial="enter"
+                animate="center"
+                exit="exit"
                 className="p-8 md:p-12 space-y-8"
               >
                 <div className="space-y-4">
@@ -383,7 +436,7 @@ export default function BookingPage() {
                 <div className="flex justify-between">
                   <button 
                     type="button"
-                    onClick={() => setStep(2)}
+                    onClick={() => { setDirection(-1); setStep(2); }}
                     className="text-stone-400 px-6 py-4 rounded-full font-bold uppercase tracking-widest flex items-center gap-2 hover:text-stone-900 transition-all"
                   >
                     <ArrowLeft size={18} /> Back
