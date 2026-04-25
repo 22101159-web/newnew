@@ -1,45 +1,32 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from ..database import get_db
 from ..services import auth_service
 from ..middleware import jwt_handler
-from ..schemas.user import Token, UserCreate, UserResponse, UserLogin
+from ..schemas import user as user_schema
 
-router = APIRouter()
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/auth/login")
+router = APIRouter(prefix="/auth", tags=["auth"])
 
-@router.post("/login", response_model=Token)
-def login(form_data: UserLogin, db: Session = Depends(get_db)):
-    # Support email or name (case-insensitive)
-    username_lower = form_data.username.lower()
-    user = db.query(auth_service.User).filter(
-        (auth_service.User.email.ilike(username_lower)) | (auth_service.User.name.ilike(username_lower))
-    ).first()
-    
-    if not user or not auth_service.verify_password(form_data.password, user.password):
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
+
+@router.post("/login", response_model=user_schema.Token)
+def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+    user = auth_service.get_user_by_email(db, email=form_data.username)
+    if not user or not auth_service.verify_password(form_data.password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",
+            headers={"WWW-Authenticate": "Bearer"},
         )
-    access_token = jwt_handler.create_access_token(data={"sub": user.email, "role": user.role, "id": user.id})
+    access_token = jwt_handler.create_access_token(
+        data={"sub": user.email, "role": user.role}
+    )
     return {"access_token": access_token, "token_type": "bearer"}
 
-@router.post("/register", response_model=UserResponse)
-def register(user_in: UserCreate, db: Session = Depends(get_db)):
-    db_user = auth_service.get_user_by_email(db, user_in.email)
+@router.post("/register", response_model=user_schema.User)
+def register(user: user_schema.UserCreate, db: Session = Depends(get_db)):
+    db_user = auth_service.get_user_by_email(db, email=user.email)
     if db_user:
         raise HTTPException(status_code=400, detail="Email already registered")
-    
-    import uuid
-    new_user = auth_service.User(
-        id=str(uuid.uuid4()),
-        name=user_in.name,
-        email=user_in.email,
-        password=auth_service.get_password_hash(user_in.password),
-        role=user_in.role
-    )
-    db.add(new_user)
-    db.commit()
-    db.refresh(new_user)
-    return new_user
+    return auth_service.create_user(db=db, user=user)

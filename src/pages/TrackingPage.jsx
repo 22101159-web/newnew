@@ -81,20 +81,16 @@ export default function TrackingPage() {
     if (!id) return;
 
     const loadEvent = () => {
-      fetch(`/api/public/events/${id}`)
-      .then(res => {
-        if (!res.ok) throw new Error('Event not found');
-        return res.json();
-      })
-      .then(foundEvent => {
+      const events = JSON.parse(localStorage.getItem('emis_events') || '[]');
+      // Search by ID or tracking number
+      const foundEvent = events.find(e => e.id === id || e.trackingNumber === id);
+      
+      if (foundEvent) {
         setEvent(foundEvent);
         
         // Load messages
-        fetch(`/api/messages/${foundEvent.id}`)
-        .then(res => res.json())
-        .then(msgs => {
-          if (Array.isArray(msgs)) setMessages(msgs);
-        });
+        const allMessages = JSON.parse(localStorage.getItem('emis_messages') || '{}');
+        setMessages(allMessages[foundEvent.id] || []);
         
         // Load preset
         if (foundEvent.presetId) {
@@ -107,19 +103,16 @@ export default function TrackingPage() {
             setPreset(communityPreset || null);
           }
         }
-        setLoading(false);
-      })
-      .catch(err => {
-        console.error('Error loading event:', err);
+      } else {
         setEvent(null);
-        setLoading(false);
-      });
+      }
+      setLoading(false);
     };
 
     loadEvent();
     
-    // Polling for updates
-    const interval = setInterval(loadEvent, 5000);
+    // Polling for local storage changes (simulating real-time)
+    const interval = setInterval(loadEvent, 2000);
     return () => clearInterval(interval);
   }, [id]);
 
@@ -131,24 +124,23 @@ export default function TrackingPage() {
     e.preventDefault();
     if (!newMessage.trim() || !event) return;
 
+    const allMessages = JSON.parse(localStorage.getItem('emis_messages') || '{}');
+    const eventMessages = allMessages[event.id] || [];
+    
     const newMsg = {
-      eventId: event.id,
+      id: `msg_${Date.now()}`,
       text: newMessage,
       senderName: event.clientName,
-      senderRole: 'client'
+      senderRole: 'client',
+      timestamp: new Date().toISOString()
     };
     
-    fetch('/api/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(newMsg)
-    })
-    .then(res => res.json())
-    .then(data => {
-      setMessages(prev => [...prev, data]);
-      setNewMessage('');
-    })
-    .catch(err => console.error('Error sending message:', err));
+    eventMessages.push(newMsg);
+    allMessages[event.id] = eventMessages;
+    localStorage.setItem('emis_messages', JSON.stringify(allMessages));
+    
+    setMessages(eventMessages);
+    setNewMessage('');
   };
 
   if (loading) {
@@ -376,7 +368,7 @@ export default function TrackingPage() {
                     <div className="flex items-center gap-2 mt-2 px-2">
                       <span className="text-[8px] uppercase tracking-widest font-bold text-stone-400">{msg.senderName}</span>
                       <span className="text-[8px] text-stone-200">•</span>
-                      <span className="text-[8px] text-stone-400 font-medium">{msg.timestamp ? format(new Date(msg.timestamp), 'HH:mm') : 'Just now'}</span>
+                      <span className="text-[8px] text-stone-400 font-medium">{msg.timestamp ? format(msg.timestamp.toDate(), 'HH:mm') : 'Just now'}</span>
                     </div>
                   </div>
                 );

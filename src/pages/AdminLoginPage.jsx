@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Lock, User, ArrowRight, ArrowLeft } from 'lucide-react';
 
@@ -9,42 +9,27 @@ export default function AdminLoginPage() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    // Clear any stale local login state on page load
-    localStorage.removeItem('admin_session');
-    localStorage.removeItem('token');
-  }, []);
-
   const handleSubmit = (e) => {
     e.preventDefault();
     setLoading(true);
     setError('');
     
-    // Call Node API for login
+    // Call Python API for login
+    const loginData = new URLSearchParams();
+    loginData.append('username', username);
+    loginData.append('password', password);
+
     fetch('/api/auth/login', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: username.trim(), password })
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: loginData
     })
     .then(async (res) => {
-      const contentType = res.headers.get('content-type');
-      let errDetail = 'Login failed';
-      
-      if (contentType && contentType.includes('application/json')) {
-        const data = await res.json();
-        if (res.ok) return data;
-        
-        // Handle FastAPI validation error detail
-        let detail = data.detail || 'Login failed';
-        if (typeof detail !== 'string') {
-          detail = JSON.stringify(detail);
-        }
-        errDetail = detail;
-      } else {
-        errDetail = await res.text() || errDetail;
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.detail || 'Login failed');
       }
-      
-      throw new Error(String(errDetail));
+      return res.json();
     })
     .then(data => {
       const token = data.access_token;
@@ -55,13 +40,7 @@ export default function AdminLoginPage() {
         headers: { 'Authorization': `Bearer ${token}` }
       });
     })
-    .then(async (res) => {
-      if (!res.ok) {
-        const errData = await res.json();
-        throw new Error(errData.detail || 'Failed to fetch user profile');
-      }
-      return res.json();
-    })
+    .then(res => res.json())
     .then(user => {
       const sessionData = {
         uid: user.id,
@@ -71,15 +50,13 @@ export default function AdminLoginPage() {
       localStorage.setItem('admin_session', JSON.stringify(sessionData));
       
       if (user.role === 'admin') {
-        navigate('/admin/dashboard');
+        window.location.href = '/admin/dashboard';
       } else {
-        navigate('/staff/dashboard');
+        window.location.href = '/staff/dashboard';
       }
     })
     .catch(err => {
-      console.error('Login flow error:', err);
-      const msg = err instanceof Error ? err.message : String(err);
-      setError(msg || 'Invalid username or password.');
+      setError(err.message || 'Invalid username or password.');
       setLoading(false);
     });
   };
@@ -134,19 +111,7 @@ export default function AdminLoginPage() {
           </div>
 
           {error && (
-            <div className="space-y-4">
-              <div className="bg-red-50 p-4 rounded-2xl border border-red-100">
-                <p className="text-[10px] text-red-600 uppercase tracking-widest text-center font-bold break-all">
-                  {String(error)}
-                </p>
-              </div>
-              <div className="p-4 bg-stone-50 rounded-xl border border-stone-200">
-                <p className="text-[10px] text-stone-400 uppercase tracking-widest text-center">
-                  Try: admin123 / admin123<br/>
-                  (Username is NOT case-sensitive)
-                </p>
-              </div>
-            </div>
+            <p className="text-xs text-red-500 uppercase tracking-widest text-center font-bold">{error}</p>
           )}
 
           <button 

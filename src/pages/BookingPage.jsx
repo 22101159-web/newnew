@@ -39,19 +39,11 @@ export default function BookingPage() {
 
   useEffect(() => {
     const fetchTakenDates = () => {
-      fetch('/api/public/events/all') // I need to add this route or just use the existing one if I had one, but let's just fetch all events and filter
-      // Actually let's just fetch from /api/events if authenticated or create a public one for dates
-      fetch('/api/events') // Admin/Staff only
-      .then(res => res.json())
-      .then(events => {
-        if (Array.isArray(events)) {
-          const dates = events
-            .filter(e => e.status !== 'Completed' && e.status !== 'Cancelled')
-            .map(e => e.eventDate);
-          setTakenDates(dates);
-        }
-      })
-      .catch(err => console.error('Error fetching taken dates:', err));
+      const events = JSON.parse(localStorage.getItem('emis_events') || '[]');
+      const dates = events
+        .filter(e => e.status !== 'Completed' && e.status !== 'Cancelled')
+        .map(e => e.eventDate);
+      setTakenDates(dates);
     };
     fetchTakenDates();
   }, []);
@@ -68,37 +60,38 @@ export default function BookingPage() {
     e.preventDefault();
     setLoading(true);
     
+    // Simulate network delay
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
     try {
+      const events = JSON.parse(localStorage.getItem('emis_events') || '[]');
+      const hasConflict = events.some(e => e.eventDate === formData.eventDate && e.status !== 'Cancelled');
+
+      if (hasConflict) {
+        alert('CONFLICT: This date has just been booked by someone else. Please select another date.');
+        setLoading(false);
+        return;
+      }
+
       const trackingNumber = `GC-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
       const eventId = `event_${Date.now()}`;
       const eventData = {
         id: eventId,
         ...formData,
-        trackingNumber
+        trackingNumber,
+        status: 'Booked',
+        createdAt: new Date().toISOString(),
+        statusPhotos: []
       };
       
-      // We use a public route for booking or an unauthenticated one if allowed
-      // For now let's assume the user can book without token, but I'll need a special route or allow it
-      // Let's check AdminDashboard created event, it uses /api/events with token.
-      // For a public booking form, we need a public endpoint.
+      events.push(eventData);
+      localStorage.setItem('emis_events', JSON.stringify(events));
       
-      const response = await fetch('/api/public/book', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(eventData)
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || 'Booking failed');
-      }
-
-      const savedEvent = await response.json();
       // Redirect to tracking page
-      navigate(`/track/${savedEvent.id}?new=true`);
+      navigate(`/track/${eventId}?new=true`);
     } catch (error) {
       console.error('Booking failed:', error);
-      alert(error.message || 'Something went wrong. Please try again.');
+      alert('Something went wrong. Please try again.');
     } finally {
       setLoading(false);
     }

@@ -1,22 +1,24 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
+from typing import Optional
 from datetime import datetime
-from typing import List, Optional
 
 class UserBase(BaseModel):
     name: str
-    email: str
+    email: EmailStr
     role: str = "client"
-
-class UserLogin(BaseModel):
-    username: str
-    password: str
 
 class UserCreate(UserBase):
     password: str
 
-class UserResponse(UserBase):
-    id: str
-    createdAt: datetime
+class UserUpdate(BaseModel):
+    name: Optional[str] = None
+    email: Optional[EmailStr] = None
+    role: Optional[str] = None
+    password: Optional[str] = None
+
+class User(UserBase):
+    id: int
+    created_at: datetime
 
     class Config:
         from_attributes = True
@@ -27,43 +29,4 @@ class Token(BaseModel):
 
 class TokenData(BaseModel):
     email: Optional[str] = None
-
-class EventBase(BaseModel):
-    trackingNumber: str
-    clientName: str
-    eventType: str
-    eventDate: Optional[str] = None
-    venue: Optional[str] = None
-    status: str = "Booked"
-
-class EventCreate(EventBase):
-    id: str
-
-class EventUpdate(BaseModel):
-    status: Optional[str] = None
-    statusPhotos: Optional[List[str]] = None
-    clientName: Optional[str] = None
-    eventType: Optional[str] = None
-    eventDate: Optional[str] = None
-    venue: Optional[str] = None
-
-class EventResponse(EventBase):
-    id: str
-    statusPhotos: List[str]
-    createdAt: datetime
-
-    class Config:
-        from_attributes = True
-
-class MessageBase(BaseModel):
-    eventId: str
-    text: str
-    senderName: str
-    senderRole: str
-
-class MessageResponse(MessageBase):
-    id: str
-    timestamp: datetime
-
-    class Config:
-        from_attributes = True
+    role: Optional[str] = None

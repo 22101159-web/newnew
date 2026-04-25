@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { 
   LayoutDashboard, Users, Calendar as CalendarIcon, TrendingUp, Search, Filter, 
-  ArrowRight, CheckCircle2, Clock, AlertCircle, Plus, X, Trash2, ChevronLeft, Archive, RefreshCw
+  ArrowRight, CheckCircle2, Clock, AlertCircle, Plus, X, Trash2, ChevronLeft, Archive
 } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 import FullCalendar from '@fullcalendar/react';
@@ -13,8 +13,6 @@ import { MOCK_PRESETS, EVENT_TYPES } from '../constants';
 export default function AdminDashboard() {
   const [events, setEvents] = useState([]);
   const [users, setUsers] = useState([]);
-  const [loadingUsers, setLoadingUsers] = useState(false);
-  const [userError, setUserError] = useState(null);
   const [loading, setLoading] = useState(true);
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = searchParams.get('tab') || 'calendar';
@@ -79,99 +77,41 @@ export default function AdminDashboard() {
     specifications: []
   });
 
-  const fetchUsers = () => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      console.warn('Cannot fetch users: No token found');
-      return;
-    }
-
-    setLoadingUsers(true);
-    setUserError(null);
-    console.log('Fetching users from API...');
-    
-    fetch('/api/users', {
-      headers: { 'Authorization': `Bearer ${token}` }
-    })
-    .then(res => {
-      if (!res.ok) {
-        if (res.status === 403) throw new Error('Permission denied. Admin access required.');
-        throw new Error(`Server responded with ${res.status}`);
-      }
-      return res.json();
-    })
-    .then(data => {
-      if (Array.isArray(data)) {
-        console.log('Successfully fetched users:', data.length);
-        setUsers(data);
-      } else {
-        console.error('Invalid users data format:', data);
-        setUserError('Invalid data received from server');
-      }
-    })
-    .catch(err => {
-      console.error('Error fetching users:', err);
-      setUserError(err.message);
-    })
-    .finally(() => {
-      setLoadingUsers(false);
-    });
-  };
-
   useEffect(() => {
-    const fetchEventsFromAPI = () => {
-      const token = localStorage.getItem('token');
-      if (!token) return;
-
-      fetch('/api/events', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-      .then(res => res.json())
-      .then(data => {
-        if (Array.isArray(data)) {
-          setEvents(data);
-        }
-      })
-      .catch(err => console.error('Error fetching events:', err));
-    };
-
     const loadData = () => {
-      try {
-        fetchEventsFromAPI();
-        // Load presets
-        const communityPresets = JSON.parse(localStorage.getItem('emis_community_presets') || '[]');
-        const communityIds = Array.isArray(communityPresets) ? communityPresets.map(p => p.id) : [];
-        
-        const allPresets = [
-          ...MOCK_PRESETS.filter(m => !communityIds.includes(m.id)).map(m => ({ ...m, isArchived: false, isClientShared: false })),
-          ...(Array.isArray(communityPresets) ? communityPresets : [])
-        ];
-        setPresets(allPresets);
-      } catch (err) {
-        console.error('Error loading data:', err);
-      }
+      // Load events
+      const storedEvents = JSON.parse(localStorage.getItem('emis_events') || '[]');
+      setEvents(storedEvents);
+
+      // Load presets
+      const communityPresets = JSON.parse(localStorage.getItem('emis_community_presets') || '[]');
+      const communityIds = communityPresets.map(p => p.id);
+      
+      const allPresets = [
+        ...MOCK_PRESETS.filter(m => !communityIds.includes(m.id)).map(m => ({ ...m, isArchived: false, isClientShared: false })),
+        ...communityPresets
+      ];
+      setPresets(allPresets);
+
+      // Load users
+      const storedUsers = JSON.parse(localStorage.getItem('emis_users') || '[]');
+      setUsers(storedUsers);
 
       setLoading(false);
     };
 
     loadData();
-    fetchUsers();
     
-    // Polling for updates
-    const interval = setInterval(() => {
-      fetchEventsFromAPI();
-      fetchUsers();
-    }, 5000);
-
+    // Polling for local storage changes
+    const interval = setInterval(loadData, 2000);
     return () => clearInterval(interval);
   }, []);
 
-  const eventsArray = Array.isArray(events) ? events : [];
   const stats = {
-    total: eventsArray.length,
-    active: eventsArray.filter(e => e && e.status !== 'Completed' && e.status !== 'Cancelled').length,
-    revenue: eventsArray.reduce((acc, e) => acc + Number((e && e.budget) || 0), 0),
-    pending: eventsArray.filter(e => e && e.status === 'Booked').length
+    total: events.length,
+    active: events.filter(e => e.status !== 'Completed' && e.status !== 'Cancelled').length,
+    revenue: events.reduce((acc, e) => acc + Number(e.budget || 0), 0),
+    pending: events.filter(e => e.status === 'Booked').length
   };
 
   const handleOpenModal = (event = null) => {
@@ -205,13 +145,12 @@ export default function AdminDashboard() {
 
   const handleSaveBooking = (e) => {
     e.preventDefault();
-    const token = localStorage.getItem('token');
     
     // Check for conflicts (Only ONE event per day)
-    const hasConflict = events.some(ev => 
-      ev.eventDate === formData.eventDate && 
-      ev.id !== selectedEvent?.id &&
-      ev.status !== 'Cancelled'
+    const hasConflict = events.some(e => 
+      e.eventDate === formData.eventDate && 
+      e.id !== selectedEvent?.id &&
+      e.status !== 'Cancelled'
     );
 
     if (hasConflict) {
@@ -219,62 +158,36 @@ export default function AdminDashboard() {
       return;
     }
 
+    const storedEvents = JSON.parse(localStorage.getItem('emis_events') || '[]');
+    let updatedEvents;
+
     if (selectedEvent) {
-      fetch(`/api/events/${selectedEvent.id}`, {
-        method: 'PUT',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ ...formData })
-      })
-      .then(res => res.json())
-      .then(data => {
-        setEvents(prev => prev.map(evt => evt.id === data.id ? data : evt));
-        setIsModalOpen(false);
-      })
-      .catch(err => alert(err.message));
+      updatedEvents = storedEvents.map(e => e.id === selectedEvent.id ? { ...e, ...formData } : e);
     } else {
       const trackingNumber = `GC-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
       const newEvent = {
         ...formData,
         id: `event_${Date.now()}`,
-        trackingNumber
+        trackingNumber,
+        createdAt: new Date().toISOString(),
+        statusPhotos: []
       };
-
-      fetch('/api/events', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(newEvent)
-      })
-      .then(res => res.json())
-      .then(data => {
-        setEvents(prev => [data, ...prev]);
-        setIsModalOpen(false);
-      })
-      .catch(err => alert(err.message));
+      updatedEvents = [newEvent, ...storedEvents];
     }
+    
+    localStorage.setItem('emis_events', JSON.stringify(updatedEvents));
+    setEvents(updatedEvents);
+    setIsModalOpen(false);
   };
 
   const handleDeleteBooking = (id) => {
-    if (!window.confirm('Are you sure you want to delete this booking?')) return;
-    const token = localStorage.getItem('token');
-    
-    fetch(`/api/events/${id}`, {
-      method: 'DELETE',
-      headers: { 'Authorization': `Bearer ${token}` }
-    })
-    .then(res => res.json())
-    .then(() => {
-      setEvents(prev => prev.filter(e => e.id !== id));
-      setIsModalOpen(false);
-      setSelectedEvent(null);
-      setDeleteConfirmId(null);
-    })
-    .catch(err => alert(err.message));
+    const storedEvents = JSON.parse(localStorage.getItem('emis_events') || '[]');
+    const updatedEvents = storedEvents.filter(e => e.id !== id);
+    localStorage.setItem('emis_events', JSON.stringify(updatedEvents));
+    setEvents(updatedEvents);
+    setIsModalOpen(false);
+    setSelectedEvent(null);
+    setDeleteConfirmId(null);
   };
 
   const handleCompleteBooking = (id) => {
@@ -379,7 +292,7 @@ export default function AdminDashboard() {
       setUserData({
         name: user.name,
         email: user.email,
-        password: '', // Password hidden for security
+        password: user.password || '',
         role: user.role
       });
     } else {
@@ -396,134 +309,44 @@ export default function AdminDashboard() {
 
   const handleSaveUser = (e) => {
     e.preventDefault();
-    console.log('handleSaveUser triggered', { selectedUser, userData });
-    const token = localStorage.getItem('token');
-    
-    if (!token) {
-      console.error('No auth token found in localStorage');
-      alert('Your session has expired. Please log in again.');
-      return;
-    }
-
-    // Function to reload users
-    const reloadUsers = () => {
-      console.log('Reloading users...');
-      fetch('/api/users', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-      .then(res => res.json())
-      .then(data => {
-        if (Array.isArray(data)) {
-          console.log('Users reloaded successfully:', data);
-          setUsers(data);
-        }
-      })
-      .catch(err => console.error('Reload users error:', err));
-    };
+    const storedUsers = JSON.parse(localStorage.getItem('emis_users') || '[]');
+    let updatedUsers;
 
     if (selectedUser) {
-      console.log('Updating existing user:', selectedUser.id);
-      // API Update (PUT)
-      fetch(`/api/users/${selectedUser.id}`, {
-        method: 'PUT',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(userData)
-      })
-      .then(async (res) => {
-        console.log('Update response status:', res.status);
-        if (!res.ok) {
-          const errData = await res.json();
-          throw new Error(errData.detail || 'Update failed');
-        }
-        return res.json();
-      })
-      .then(() => {
-        console.log('Update successful');
-        reloadUsers();
-        setIsUserModalOpen(false);
-        alert('User updated successfully!');
-      })
-      .catch(err => {
-        console.error('Update error:', err);
-        alert(err.message);
-      });
+      updatedUsers = storedUsers.map(u => u.id === selectedUser.id ? { ...u, ...userData } : u);
     } else {
-      console.log('Creating new user:', userData.email);
-      // API Create (POST)
-      fetch('/api/auth/register', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(userData)
-      })
-      .then(async (res) => {
-        console.log('Registration response status:', res.status);
-        if (!res.ok) {
-          const errData = await res.json();
-          throw new Error(errData.detail || 'Registration failed');
-        }
-        return res.json();
-      })
-      .then((newUser) => {
-        console.log('Registration successful:', newUser);
-        reloadUsers();
-        setIsUserModalOpen(false);
-        alert('User created successfully!');
-      })
-      .catch(err => {
-        console.error('Registration error:', err);
-        alert(err.message);
-      });
+      const newUser = {
+        ...userData,
+        id: `user_${Date.now()}`,
+        createdAt: new Date().toISOString()
+      };
+      updatedUsers = [...storedUsers, newUser];
     }
+    
+    localStorage.setItem('emis_users', JSON.stringify(updatedUsers));
+    setUsers(updatedUsers);
+    setIsUserModalOpen(false);
   };
 
   const handleDeleteUser = (id) => {
-    const token = localStorage.getItem('token');
-    fetch(`/api/users/${id}`, {
-      method: 'DELETE',
-      headers: { 'Authorization': `Bearer ${token}` }
-    })
-    .then(res => {
-      if (!res.ok) throw new Error('Delete failed');
-      return res.json();
-    })
-    .then(() => {
-      // Reload users
-      fetch('/api/users', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-      .then(res => res.json())
-      .then(data => {
-        if (Array.isArray(data)) {
-          setUsers(data);
-        }
-        setDeleteUserConfirmId(null);
-        setIsUserModalOpen(false);
-      });
-    })
-    .catch(err => alert(err.message));
+    const storedUsers = JSON.parse(localStorage.getItem('emis_users') || '[]');
+    const updatedUsers = storedUsers.filter(u => u.id !== id);
+    localStorage.setItem('emis_users', JSON.stringify(updatedUsers));
+    setUsers(updatedUsers);
+    setDeleteUserConfirmId(null);
+    setIsUserModalOpen(false);
   };
 
-  const filteredEvents = (Array.isArray(events) ? events : []).filter(event => {
-    if (!event) return false;
+  const filteredEvents = events.filter(event => {
     const matchesType = filterType === 'All' || event.eventType === filterType;
-    const clientName = event.clientName || '';
-    const trackingNumber = event.trackingNumber || '';
-    const matchesSearch = clientName.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          trackingNumber.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch = event.clientName.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                          event.trackingNumber.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesType && matchesSearch;
   });
 
-  const calendarEvents = (Array.isArray(events) ? events : [])
-    .filter(event => event && event.eventDate)
-    .map(event => ({
+  const calendarEvents = events.map(event => ({
     id: event.id,
-    title: `${event.clientName || 'Unnamed'} (${event.eventType || 'Event'})`,
+    title: `${event.clientName} (${event.eventType})`,
     start: event.eventDate,
     allDay: true,
     backgroundColor: event.status === 'Completed' ? '#a8a29e' : 
@@ -664,16 +487,14 @@ export default function AdminDashboard() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-stone-100">
-                {(Array.isArray(filteredEvents) ? filteredEvents : []).filter(e => !!e).map(event => (
+                {filteredEvents.map(event => (
                   <tr key={event.id} className="hover:bg-stone-50/80 transition-colors group cursor-pointer" onClick={() => handleOpenModal(event)}>
                     <td className="px-8 py-6 font-mono text-xs font-bold text-accent-gold">{event.trackingNumber}</td>
                     <td className="px-8 py-6">
                       <p className="text-sm font-bold text-stone-900">{event.clientName}</p>
                       <p className="text-[10px] text-stone-500 uppercase tracking-widest">{event.clientEmail}</p>
                     </td>
-                    <td className="px-8 py-6 text-sm text-stone-600">
-                      {event.eventDate ? format(new Date(event.eventDate), 'MMM dd, yyyy') : 'No Date'}
-                    </td>
+                    <td className="px-8 py-6 text-sm text-stone-600">{format(new Date(event.eventDate), 'MMM dd, yyyy')}</td>
                     <td className="px-8 py-6 text-xs uppercase tracking-widest font-bold text-stone-500">{event.eventType}</td>
                     <td className="px-8 py-6">
                       <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border ${
@@ -783,8 +604,8 @@ export default function AdminDashboard() {
             </div>
           </div>
           <div className="p-8 grid md:grid-cols-3 gap-6">
-            {(Array.isArray(presets) ? presets : [])
-              .filter(p => p && !p.isClientShared && !p.isArchived)
+            {presets
+              .filter(p => !p.isClientShared && !p.isArchived)
               .filter(p => selectedPresetType === 'All' || p.eventType === selectedPresetType)
               .map(preset => (
               <div key={preset.id} className={`group relative bg-white rounded-3xl overflow-hidden transition-all ${preset.isArchived ? 'opacity-60 grayscale' : 'hover:shadow-xl hover:-translate-y-1'}`}>
@@ -847,8 +668,8 @@ export default function AdminDashboard() {
             </div>
           </div>
           <div className="p-8 grid md:grid-cols-3 gap-6">
-            {(Array.isArray(presets) ? presets : [])
-              .filter(p => p && p.isClientShared && !p.isArchived)
+            {presets
+              .filter(p => p.isClientShared && !p.isArchived)
               .filter(p => selectedPresetType === 'All' || p.eventType === selectedPresetType)
               .map(preset => (
               <div key={preset.id} className={`group relative bg-white rounded-3xl overflow-hidden transition-all ${preset.isArchived ? 'opacity-60 grayscale' : 'hover:shadow-xl hover:-translate-y-1'}`}>
@@ -1073,8 +894,8 @@ export default function AdminDashboard() {
             </div>
           </div>
           <div className="p-8 grid md:grid-cols-3 gap-6">
-            {(Array.isArray(presets) ? presets : [])
-              .filter(p => p && p.isArchived)
+            {presets
+              .filter(p => p.isArchived)
               .filter(p => selectedPresetType === 'All' || p.eventType === selectedPresetType)
               .map(preset => (
               <div key={preset.id} className="group relative bg-white rounded-3xl overflow-hidden transition-all opacity-80 hover:opacity-100 border border-stone-100 hover:shadow-xl hover:-translate-y-1">
@@ -1124,80 +945,47 @@ export default function AdminDashboard() {
         <section className="bg-white rounded-[40px] border border-stone-200 shadow-xl overflow-hidden">
           <div className="p-8 border-b border-stone-100 bg-stone-50/50 flex justify-between items-center">
             <div>
-              <h2 className="text-2xl font-serif italic text-stone-900">User Roles & Access ({users.length})</h2>
+              <h2 className="text-2xl font-serif italic text-stone-900">User Roles & Access</h2>
               <p className="text-[10px] uppercase tracking-widest text-stone-500 mt-1">Manage admin and staff accounts</p>
-              {userError && <p className="text-red-500 text-[10px] mt-1">Error: {userError}</p>}
             </div>
-            <div className="flex items-center gap-3">
-              <button 
-                onClick={fetchUsers}
-                className="p-2 text-stone-400 hover:text-stone-900 transition-colors rounded-full hover:bg-stone-100"
-                title="Refresh user list"
-              >
-                <RefreshCw size={16} />
-              </button>
-              <button 
-                onClick={() => handleOpenUserModal()}
-                className="px-6 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest bg-accent-gold text-white shadow-md hover:bg-gold-600 transition-all"
-              >
-                <Plus size={14} className="inline mr-2" /> Add User
-              </button>
-            </div>
+            <button 
+              onClick={() => handleOpenUserModal()}
+              className="px-6 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest bg-accent-gold text-white shadow-md hover:bg-gold-600 transition-all"
+            >
+              <Plus size={14} className="inline mr-2" /> Add User
+            </button>
           </div>
-          <div className="p-8">
-            {loadingUsers && !users.length ? (
-              <div className="flex flex-col items-center justify-center py-20 bg-stone-50/50 rounded-3xl border border-dashed border-stone-200">
-                <RefreshCw size={24} className="animate-spin text-accent-gold mb-4" />
-                <p className="text-stone-400 uppercase tracking-widest text-xs font-bold">Synchronizing personnel database...</p>
-              </div>
-            ) : userError ? (
-              <div className="p-12 text-center bg-red-50 rounded-3xl border border-red-100">
-                <AlertCircle size={32} className="text-red-400 mx-auto mb-4" />
-                <h3 className="text-red-900 font-serif italic text-lg mb-2">Sync Connection Interrupted</h3>
-                <p className="text-red-600 text-sm mb-6">{userError}</p>
-                <button 
-                  onClick={fetchUsers}
-                  className="px-6 py-2 bg-red-600 text-white text-[10px] font-bold uppercase tracking-widest rounded-full hover:bg-red-700 transition-all"
-                >
-                  Attempt Re-sync
-                </button>
-              </div>
-            ) : (
-              <div className="grid md:grid-cols-2 gap-8">
-                {(Array.isArray(users) ? users : []).filter(u => !!u).map(user => (
-                  <div key={user.id} className="flex items-center justify-between p-6 bg-stone-50/50 rounded-3xl border border-stone-100 hover:border-accent-gold/30 transition-all hover:shadow-md">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-gold-50 rounded-2xl flex items-center justify-center text-accent-gold font-bold uppercase border border-gold-100">
-                        {user.name?.charAt(0) || 'U'}
-                      </div>
-                      <div>
-                        <p className="font-bold text-stone-900">{user.name}</p>
-                        <p className="text-[10px] text-stone-500 uppercase tracking-widest">{user.email}</p>
-                        <p className="text-[8px] text-stone-400 uppercase tracking-widest mt-1">Role: {user.role}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border ${
-                        user.role === 'admin' ? 'bg-stone-900 text-white border-stone-900' : 'bg-white text-stone-600 border-stone-200'
-                      }`}>
-                        {user.role}
-                      </span>
-                      <div className="flex gap-1">
-                        <button onClick={() => handleOpenUserModal(user)} className="p-2 text-stone-400 hover:text-stone-900 transition-colors">
-                          <CheckCircle2 size={16} />
-                        </button>
-                        <button onClick={() => setDeleteUserConfirmId(user.id)} className="p-2 text-stone-400 hover:text-red-500 transition-colors">
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                    </div>
+          <div className="p-8 grid md:grid-cols-2 gap-8">
+            {users.map(user => (
+              <div key={user.id} className="flex items-center justify-between p-6 bg-stone-50/50 rounded-3xl border border-stone-100 hover:border-accent-gold/30 transition-all hover:shadow-md">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-gold-50 rounded-2xl flex items-center justify-center text-accent-gold font-bold uppercase border border-gold-100">
+                    {user.name?.charAt(0) || 'U'}
                   </div>
-                ))}
-                {users.length === 0 && (
-                  <div className="col-span-full py-20 text-center bg-stone-50 rounded-3xl border border-dashed border-stone-200">
-                    <p className="text-stone-400 uppercase tracking-widest text-xs font-bold">No registered personnel found in system.</p>
+                  <div>
+                    <p className="font-bold text-stone-900">{user.name}</p>
+                    <p className="text-[10px] text-stone-500 uppercase tracking-widest">{user.email}</p>
                   </div>
-                )}
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border ${
+                    user.role === 'admin' ? 'bg-gold-50 text-accent-gold border-gold-100' : 'bg-stone-100 text-stone-600 border-stone-200'
+                  }`}>
+                    {user.role}
+                  </span>
+                  <button 
+                    onClick={() => handleOpenUserModal(user)}
+                    className="p-2 text-stone-400 hover:text-accent-gold transition-colors"
+                  >
+                    <ArrowRight size={16} />
+                  </button>
+                </div>
+              </div>
+            ))}
+            {users.length === 0 && (
+              <div className="col-span-full py-12 text-center bg-stone-50 rounded-3xl border border-dashed border-stone-200 text-stone-400">
+                <p className="text-[10px] uppercase tracking-widest font-bold">No additional users created.</p>
+                <p className="text-[10px] mt-1 italic">The main admin account (Admin123) is built-in.</p>
               </div>
             )}
           </div>

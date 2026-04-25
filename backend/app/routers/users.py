@@ -1,109 +1,81 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
-import json
-import uuid
 from ..database import get_db
-from ..models.user import User, Event, Message
-from ..schemas.user import UserResponse, EventResponse, EventCreate, EventUpdate, MessageResponse, MessageBase
-
-from fastapi.security import OAuth2PasswordBearer
+from ..models import user as user_model
+from ..schemas import user as user_schema
+from .auth import oauth2_scheme
 from ..middleware import jwt_handler
 
-router = APIRouter()
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/auth/login")
+router = APIRouter(prefix="/users", tags=["users"])
 
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     payload = jwt_handler.decode_access_token(token)
-    if not payload:
-        raise HTTPException(status_code=401, detail="Invalid token")
-    email = payload.get("sub")
-    if not email:
-        raise HTTPException(status_code=401, detail="Subject missing in token")
-    user = db.query(User).filter(User.email == email).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+    if payload is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not validate credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    email: str = payload.get("sub")
+    if email is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+    user = db.query(user_model.User).filter(user_model.User.email == email).first()
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     return user
 
-@router.get("/users/me", response_model=UserResponse)
-def read_users_me(current_user: User = Depends(get_current_user)):
+def check_admin(user: user_model.User = Depends(get_current_user)):
+    if user.role != "admin":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not enough permissions")
+    return user
+
+@router.get("/me", response_model=user_schema.User)
+def read_users_me(current_user: user_model.User = Depends(get_current_user)):
     return current_user
 
-@router.get("/users", response_model=List[UserResponse])
-def get_users(db: Session = Depends(get_db)):
-    return db.query(User).all()
+@router.get("/", response_model=List[user_schema.User])
+def read_users(
+    skip: int = 0, 
+    limit: int = 100, 
+    db: Session = Depends(get_db),
+    admin: user_model.User = Depends(check_admin)
+):
+    users = db.query(user_model.User).offset(skip).limit(limit).all()
+    return users
 
-@router.get("/events", response_model=List[EventResponse])
-def get_events(db: Session = Depends(get_db)):
-    events = db.query(Event).order_by(Event.createdAt.desc()).all()
-    # Manual conversion for statusPhotos string to list
-    for e in events:
-        e.statusPhotos = json.loads(e.statusPhotos) if e.statusPhotos else []
-    return events
-
-@router.post("/events", response_model=EventResponse)
-def create_event(event_in: EventCreate, db: Session = Depends(get_db)):
-    new_event = Event(
-        **event_in.dict(),
-        statusPhotos="[]"
-    )
-    db.add(new_event)
-    db.commit()
-    db.refresh(new_event)
-    new_event.statusPhotos = []
-    return new_event
-
-@router.put("/events/{event_id}", response_model=EventResponse)
-def update_event(event_id: str, event_up: EventUpdate, db: Session = Depends(get_db)):
-    db_event = db.query(Event).filter(Event.id == event_id).first()
-    if not db_event:
-        raise HTTPException(status_code=404, detail="Event not found")
+@router.put("/{user_id}", response_model=user_schema.User)
+def update_user(
+    user_id: int, 
+    user_update: user_schema.UserUpdate, 
+    db: Session = Depends(get_db),
+    admin: user_model.User = Depends(check_admin)
+):
+    db_user = db.query(user_model.User).filter(user_model.User.id == user_id).first()
+    if not db_user:
+        raise HTTPException(status_code=404, detail="User not found")
     
-    update_data = event_up.dict(exclude_unset=True)
-    if "statusPhotos" in update_data:
-        update_data["statusPhotos"] = json.dumps(update_data["statusPhotos"])
-    
+    update_data = user_update.dict(exclude_unset=True)
+    if "password" in update_data:
+        from ..services import auth_service
+        update_data["hashed_password"] = auth_service.get_password_hash(update_data.pop("password"))
+        
     for key, value in update_data.items():
-        setattr(db_event, key, value)
-    
+        setattr(db_user, key, value)
+        
     db.commit()
-    db.refresh(db_event)
-    db_event.statusPhotos = json.loads(db_event.statusPhotos)
-    return db_event
+    db.refresh(db_user)
+    return db_user
 
-@router.get("/public/events/{identifier}")
-def get_public_event(identifier: str, db: Session = Depends(get_db)):
-    event = db.query(Event).filter((Event.id == identifier) | (Event.trackingNumber == identifier)).first()
-    if not event:
-        raise HTTPException(status_code=404, detail="Event not found")
-    event.statusPhotos = json.loads(event.statusPhotos)
-    return event
-
-@router.post("/public/book")
-def public_book(event_in: EventCreate, db: Session = Depends(get_db)):
-    # Simple conflict check
-    conflict = db.query(Event).filter(Event.eventDate == event_in.eventDate, Event.status != "Cancelled").first()
-    if conflict:
-        raise HTTPException(status_code=400, detail="Date already booked")
-    
-    new_event = Event(**event_in.dict(), statusPhotos="[]")
-    db.add(new_event)
+@router.delete("/{user_id}")
+def delete_user(
+    user_id: int, 
+    db: Session = Depends(get_db),
+    admin: user_model.User = Depends(check_admin)
+):
+    db_user = db.query(user_model.User).filter(user_model.User.id == user_id).first()
+    if not db_user:
+        raise HTTPException(status_code=404, detail="User not found")
+    db.delete(db_user)
     db.commit()
-    db.refresh(new_event)
-    new_event.statusPhotos = []
-    return new_event
-
-@router.get("/messages/{event_id}", response_model=List[MessageResponse])
-def get_messages(event_id: str, db: Session = Depends(get_db)):
-    return db.query(Message).filter(Message.eventId == event_id).order_by(Message.timestamp).all()
-
-@router.post("/messages", response_model=MessageResponse)
-def create_message(msg_in: MessageBase, db: Session = Depends(get_db)):
-    new_msg = Message(
-        id=f"msg_{int(uuid.uuid4())}"[:15],
-        **msg_in.dict()
-    )
-    db.add(new_msg)
-    db.commit()
-    db.refresh(new_msg)
-    return new_msg
+    return {"message": "User deleted successfully"}

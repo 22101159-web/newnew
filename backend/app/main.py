@@ -1,50 +1,62 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from .database import engine, Base, SessionLocal
-from .models.user import User
+from .database import engine, Base
 from .routers import auth, users
+from .database import SessionLocal
 from .services import auth_service
-import uuid
+from .schemas import user as user_schema
 
-# Create tables
+# Create database tables
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="EMIS API", version="1.0.0")
+# Seed initial admin if not exists
+def seed_admin():
+    db = SessionLocal()
+    admin = auth_service.get_user_by_email(db, "Admin123")
+    # Also check email variant
+    if not admin:
+        admin = auth_service.get_user_by_email(db, "admin@example.com")
+    
+    if not admin:
+        print("Seeding initial admin user...")
+        initial_admin = user_schema.UserCreate(
+            name="System Admin",
+            email="admin@example.com", # Default email
+            password="Admin123",
+            role="admin"
+        )
+        # We also want to support logging in with 'Admin123' as username 
+        # but schemas expect EmailStr, so I'll just use a valid email
+        # and update auth_service to handle it.
+        # Actually, let's just make one with email 'Admin123' if we allow it in Schema.
+        # For now, use admin@example.com
+        auth_service.create_user(db, initial_admin)
+        print("Initial admin created: admin@example.com / Admin123")
+    db.close()
 
+seed_admin()
+
+app = FastAPI(title="Event Styling API")
+
+# Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"], # In production, replace with your frontend URL
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Seed Admin User
-def seed_admin():
-    db = SessionLocal()
-    try:
-        admin_email = "admin@example.com"
-        exists = auth_service.get_user_by_email(db, admin_email)
-        if not exists:
-            admin = User(
-                id=str(uuid.uuid4()),
-                name="admin123",
-                email=admin_email,
-                password=auth_service.get_password_hash("admin123"),
-                role="admin"
-            )
-            db.add(admin)
-            db.commit()
-            print("Admin user seeded (admin123 / admin123).")
-    finally:
-        db.close()
-
-seed_admin()
-
-# Include Routers
-app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])
-app.include_router(users.router, prefix="/api", tags=["Users & Events"])
+# Include routers
+app.include_api_routes = [
+    app.include_router(auth.router, prefix="/api"),
+    app.include_router(users.router, prefix="/api"),
+]
 
 @app.get("/")
 def read_root():
-    return {"status": "Backend is running with Python FastAPI"}
+    return {"message": "Welcome to Event Styling API"}
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
