@@ -21,7 +21,7 @@ Steps to Setup:
    - Open a terminal/command prompt in the project folder.
    - Run the following command to install Frontend and Manager dependencies:
      npm install
-   - The Python backend dependencies will be automatically installed when you first run the dev server, or you can manually install them:
+   - The Python backend dependencies will be automatically installed when you run `npm run dev`, or you can manually install them using:
      pip install -r backend/requirements.txt
 
    This will install all necessary packages including:
