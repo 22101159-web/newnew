@@ -8,21 +8,23 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 async function start() {
+  const pythonCmd = process.platform === 'win32' ? 'python' : 'python3';
+  
   console.log("Installing Python dependencies...");
   await new Promise((resolve, reject) => {
     // Adding uv / pip command here
-    const p = spawn('python3', ['-m', 'pip', 'install', '-r', 'requirements.txt'], { 
+    const p = spawn(pythonCmd, ['-m', 'pip', 'install', '-r', 'requirements.txt'], { 
       cwd: path.join(__dirname, 'backend'),
       stdio: 'inherit' 
     });
     p.on('close', (code) => {
       if (code === 0) resolve(true);
-      else reject(new Error(`pip3 failed with code ${code}`));
+      else reject(new Error(`pip install failed with code ${code}`));
     });
   });
 
   console.log("Starting Python FastAPI Server...");
-  const pythonServer = spawn('python3', ['-m', 'uvicorn', 'app.main:app', '--host', '127.0.0.1', '--port', '8000'], {
+  const pythonServer = spawn(pythonCmd, ['-m', 'uvicorn', 'app.main:app', '--host', '127.0.0.1', '--port', '8000'], {
     cwd: path.join(__dirname, 'backend'),
     stdio: 'inherit'
   });

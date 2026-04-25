@@ -10,7 +10,13 @@ router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 @router.post("/login", response_model=Token)
 def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+    print(f"Login attempt: username='{form_data.username}', password='{form_data.password}'")
     user = get_user_by_username(db, form_data.username)
+    if not user:
+        print("User not found in DB")
+    elif not verify_password(form_data.password, user.hashed_password):
+        print("Password mismatch")
+    
     if not user or not verify_password(form_data.password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

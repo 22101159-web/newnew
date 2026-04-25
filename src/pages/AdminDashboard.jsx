@@ -93,9 +93,27 @@ export default function AdminDashboard() {
       ];
       setPresets(allPresets);
 
-      // Load users
-      const storedUsers = JSON.parse(localStorage.getItem('emis_users') || '[]');
-      setUsers(storedUsers);
+      // Load users from API
+      const sessionData = JSON.parse(localStorage.getItem('admin_session') || '{}');
+      if (sessionData.token) {
+        fetch('/api/users/', {
+          headers: { 'Authorization': `Bearer ${sessionData.token}` }
+        })
+        .then(res => res.json())
+        .then(data => {
+          if (Array.isArray(data)) {
+            // Map the API data structure back to frontend expectations
+            const mappedUsers = data.map(u => ({
+              id: u.id,
+              name: u.email || u.username,
+              email: u.username,
+              role: u.role
+            }));
+            setUsers(mappedUsers);
+          }
+        })
+        .catch(console.error);
+      }
 
       setLoading(false);
     };
@@ -307,34 +325,82 @@ export default function AdminDashboard() {
     setIsUserModalOpen(true);
   };
 
-  const handleSaveUser = (e) => {
+  const handleSaveUser = async (e) => {
     e.preventDefault();
-    const storedUsers = JSON.parse(localStorage.getItem('emis_users') || '[]');
-    let updatedUsers;
-
-    if (selectedUser) {
-      updatedUsers = storedUsers.map(u => u.id === selectedUser.id ? { ...u, ...userData } : u);
-    } else {
-      const newUser = {
-        ...userData,
-        id: `user_${Date.now()}`,
-        createdAt: new Date().toISOString()
-      };
-      updatedUsers = [...storedUsers, newUser];
+    const sessionData = JSON.parse(localStorage.getItem('admin_session') || '{}');
+    if (!sessionData.token) {
+      alert("No authorization token found. Please log in again.");
+      return;
     }
-    
-    localStorage.setItem('emis_users', JSON.stringify(updatedUsers));
-    setUsers(updatedUsers);
-    setIsUserModalOpen(false);
+
+    const payload = {
+      username: userData.email.trim(), // Trim spaces in username
+      email: userData.name.trim(),     // Storing the 'Full Name' in the email field
+      role: userData.role
+    };
+
+    if (userData.password) {
+      payload.password = userData.password;
+    }
+
+    try {
+      if (selectedUser) {
+        const res = await fetch(`/api/users/${selectedUser.id}`, {
+          method: 'PUT',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${sessionData.token}`
+          },
+          body: JSON.stringify(payload)
+        });
+        if (!res.ok) throw new Error('Failed to update user. Please ensure the username is unique.');
+      } else {
+        if (!payload.password) throw new Error('Password is required for new users.');
+        const res = await fetch('/api/users/', {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${sessionData.token}`
+          },
+          body: JSON.stringify(payload)
+        });
+        if (!res.ok) {
+          const errData = await res.json();
+          throw new Error(errData.detail || 'Failed to create user');
+        }
+      }
+      setIsUserModalOpen(false);
+      
+      // Refresh users from API
+      const refreshRes = await fetch('/api/users/', {
+        headers: { 'Authorization': `Bearer ${sessionData.token}` }
+      });
+      const data = await refreshRes.json();
+      if (Array.isArray(data)) {
+        setUsers(data.map(u => ({ id: u.id, name: u.email || u.username, email: u.username, role: u.role })));
+      }
+    } catch (err) {
+      alert(err.message);
+    }
   };
 
-  const handleDeleteUser = (id) => {
-    const storedUsers = JSON.parse(localStorage.getItem('emis_users') || '[]');
-    const updatedUsers = storedUsers.filter(u => u.id !== id);
-    localStorage.setItem('emis_users', JSON.stringify(updatedUsers));
-    setUsers(updatedUsers);
-    setDeleteUserConfirmId(null);
-    setIsUserModalOpen(false);
+  const handleDeleteUser = async (id) => {
+    const sessionData = JSON.parse(localStorage.getItem('admin_session') || '{}');
+    if (!sessionData.token) return;
+
+    try {
+      const res = await fetch(`/api/users/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${sessionData.token}` }
+      });
+      if (!res.ok) throw new Error('Failed to delete user');
+
+      setUsers(users.filter(u => u.id !== id));
+      setDeleteUserConfirmId(null);
+      setIsUserModalOpen(false);
+    } catch (err) {
+      alert(err.message);
+    }
   };
 
   const filteredEvents = events.filter(event => {

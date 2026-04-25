@@ -16,7 +16,7 @@ export default function AdminLoginPage() {
     
     try {
       const formData = new URLSearchParams();
-      formData.append('username', username);
+      formData.append('username', username.trim());
       formData.append('password', password);
 
       const response = await fetch('/api/auth/login', {

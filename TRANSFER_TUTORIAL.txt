@@ -1,96 +1,48 @@
 TRANSFERRING YOUR PROJECT TO YOUR LOCAL MACHINE
 =================================================
 
-This is a comprehensive guide to transferring your project from this environment to your local machine. This guide covers how to set up both the React/Vite frontend and the newly implemented Python FastAPI backend.
+This is a comprehensive guide to transferring your project from this environment to your local machine. This guide covers how to set up both the React/Vite frontend and the Python FastAPI backend using VS Code.
 
-Phase 1: Preparation
---------------------
-Before you start, ensure you have these installed on your computer:
-1. Node.js (v18 or higher)
+Since you are exporting this project directly from AI Studio, you don't need to manually recreate the folders or copy-paste code! The ZIP file you download will already contain everything.
+
+Phase 1: Download the Code
+--------------------------
+1. Click the "Settings" menu in the top right corner of AI Studio.
+2. Select "Export to ZIP" (or export it to GitHub and clone the repository).
+3. Extract the downloaded ZIP file to somewhere on your computer.
+
+Phase 2: Preparations
+---------------------
+Before you start, ensure you have these tools installed on your computer:
+1. Node.js (v18 or higher) - Includes "npm"
 2. Python 3 (v3.9 or higher)
-3. pip (Python package installer)
+3. pip (Python package installer - comes with Python usually)
 
-- Create a New Folder: Create a folder on your computer named "gabrielle-custodio-styling".
-- Open Terminal: Open your terminal inside that folder.
-
-Phase 2: Project Initialization
--------------------------------
-Run the following command to create a fresh Vite project:
-npm create vite@latest . -- --template react
-
-When asked to "Proceed", type "y".
-
-Phase 3: Installing Frontend Dependencies
---------------------------------
-Run this command to install the frontend libraries:
-npm install lucide-react motion react-router-dom date-fns clsx tailwind-merge @google/genai cloudinary dotenv @fullcalendar/react @fullcalendar/daygrid @fullcalendar/interaction @fullcalendar/timegrid http-proxy-middleware express
-
-Then, install Tailwind CSS and TypeScript developer tools:
-npm install -D tailwindcss @tailwindcss/vite autoprefixer typescript @types/node @types/express tsx
-
-Phase 4: Setting up the Python Backend
+Phase 3: Opening in Visual Studio Code
 --------------------------------------
-1. Create a folder named "backend" in the root of your project.
-2. Inside "backend", recreate the folder structure and copy the files from the environment:
-   backend/
-   ├── app/
-   │   ├── __init__.py
-   │   ├── main.py
-   │   ├── config.py
-   │   ├── database.py
-   │   ├── models/
-   │   │   ├── __init__.py
-   │   │   └── user.py
-   │   ├── schemas/
-   │   │   ├── __init__.py
-   │   │   └── user.py
-   │   ├── routers/
-   │   │   ├── __init__.py
-   │   │   ├── auth.py
-   │   │   └── users.py
-   │   ├── services/
-   │   │   ├── __init__.py
-   │   │   └── auth_service.py
-   │   └── middleware/
-   │       ├── __init__.py
-   │       └── jwt_handler.py
-   ├── requirements.txt
-   └── .env
+1. Open VS Code.
+2. Go to File > "Open Folder..." and select the extracted folder.
+3. Open a new built-in terminal in VS Code (Terminal > New Terminal, or press `Ctrl + \``).
 
-Phase 5: Configuration Files
-----------------------------
-Copy the content from your files here into your local files:
-- vite.config.ts: Copy the content from this file. It handles Tailwind v4 and proxies /api requests to the Python server.
-- tsconfig.json: Copy this content.
-- server.ts: Copy the "server.ts" file to the root. This is our dual-runner that starts both the Vite frontend and Python FastAPI backend together.
-- package.json: Make sure your scripts section looks like this:
+Phase 4: Install Dependencies
+-----------------------------
+In the VS Code terminal, run the following command to install the frontend Node modules:
 
-"scripts": {
-  "start": "tsx server.ts",
-  "dev": "tsx server.ts",
-  "build": "vite build",
-  "lint": "tsc --noEmit",
-  "preview": "vite preview"
-}
+npm install
 
-Phase 6: Moving the Source Code
--------------------------------
-Copy the folders and files from the sidebar here to your local src folder:
-- Assets: Create src/assets/images and move all your .jpeg and .jpg files there.
-- Components: Copy the entire /src/components/ folder.
-- Pages: Copy the entire /src/pages/ folder.
-- Constants: Copy src/constants.js.
-- Global Styles: Copy src/index.css. Ensure it starts with: @import "tailwindcss";
-- The App Entry: Copy src/App.jsx and src/main.jsx.
+Phase 5: Running the Full-Stack App
+-----------------------------------
+Once NPM finishes installing, start the application by running:
 
-Phase 7: Running the App
-------------------------
-In your terminal, simply run:
 npm run dev
 
-What this does:
-1. It automatically installs Python requirements (using pip install -r requirements.txt).
+What this command does automatically behind the scenes (via server.ts):
+1. It installs the Python requirements (`pip install -r backend/requirements.txt`).
 2. It starts the Python FastAPI server on port 8000.
 3. It starts the Vite React frontend.
 
-Open the provided link in your browser, and your full-stack project will be running locally! Note that on first start, the system automatically creates the default admin user (Admin123/Admin123).
+Once the terminal says both servers are started, open the provided localhost link (usually http://localhost:5173 or 3000) in your browser.
+
+Note: On the first time the server starts, the database will automatically be initialized and the default admin user will be created:
+Username: Admin123
+Password: Admin123

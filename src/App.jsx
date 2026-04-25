@@ -26,6 +26,9 @@ export default function App() {
     if (session) {
       try {
         const sessionData = JSON.parse(session);
+        if (!sessionData.token) throw new Error("No token");
+        
+        // Optionally validate token here or just set it
         setUser({ uid: sessionData.uid, name: sessionData.name });
         setRole(sessionData.role);
       } catch (e) {

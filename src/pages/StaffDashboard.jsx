@@ -26,19 +26,18 @@ export default function StaffDashboard() {
   }, []);
 
   useEffect(() => {
-    const loadEvents = () => {
-      const storedEvents = JSON.parse(localStorage.getItem('emis_events') || '[]');
-      setEvents(storedEvents);
-      if (storedEvents.length > 0 && !selectedEvent) {
-        setSelectedEvent(storedEvents[0]);
-      }
-      setLoading(false);
-    };
+    const storedEvents = JSON.parse(localStorage.getItem('emis_events') || '[]');
+    setEvents(storedEvents);
+    if (storedEvents.length > 0) {
+      setSelectedEvent(storedEvents[0]);
+    }
+    setLoading(false);
 
-    loadEvents();
-    
     // Polling for local storage changes
-    const interval = setInterval(loadEvents, 2000);
+    const interval = setInterval(() => {
+      const currentStored = JSON.parse(localStorage.getItem('emis_events') || '[]');
+      setEvents(currentStored);
+    }, 2000);
     return () => clearInterval(interval);
   }, []);
 
