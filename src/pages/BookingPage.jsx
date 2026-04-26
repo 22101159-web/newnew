@@ -66,9 +66,13 @@ export default function BookingPage() {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: name === 'budget' ? Number(value) : value }));
+    let finalValue = value;
+    if (name === 'clientPhone') {
+      finalValue = value.replace(/\D/g, '');
+    }
+    setFormData(prev => ({ ...prev, [name]: name === 'budget' ? Number(finalValue) : finalValue }));
     if (name === 'eventType') {
-      setPresetFilter(value);
+      setPresetFilter(finalValue);
     }
   };
 
@@ -194,6 +198,8 @@ export default function BookingPage() {
                       value={formData.clientPhone}
                       onChange={handleInputChange}
                       type="tel" 
+                      inputMode="numeric"
+                      pattern="[0-9]*"
                       placeholder="0912 345 6789"
                       className="w-full px-6 py-4 bg-stone-50 border border-stone-200 rounded-2xl text-stone-900 placeholder:text-stone-400 focus:outline-none focus:border-accent-gold transition-all"
                     />

@@ -1250,8 +1250,10 @@ export default function AdminDashboard() {
                   <input 
                     required
                     type="tel" 
+                    inputMode="numeric"
+                    pattern="[0-9]*"
                     value={formData.clientPhone}
-                    onChange={(e) => setFormData({...formData, clientPhone: e.target.value})}
+                    onChange={(e) => setFormData({...formData, clientPhone: e.target.value.replace(/\D/g, '')})}
                     className="w-full px-6 py-4 bg-stone-50 border border-stone-200 rounded-2xl text-stone-900 focus:outline-none focus:border-accent-gold transition-all"
                   />
                 </div>
