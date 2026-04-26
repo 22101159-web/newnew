@@ -223,18 +223,15 @@ export default function BookingPage() {
                   <button 
                     type="button"
                     onClick={() => { 
-                      const inputs = document.querySelectorAll('input[required], select[required]');
-                      let isValid = true;
-                      inputs.forEach(input => {
+                      const inputs = document.querySelectorAll('input[name="clientName"], input[name="clientEmail"], input[name="clientPhone"]');
+                      for (const input of inputs) {
                         if (!input.checkValidity()) {
                           input.reportValidity();
-                          isValid = false;
+                          return;
                         }
-                      });
-                      if (isValid) {
-                        setDirection(1); 
-                        setStep(2); 
                       }
+                      setDirection(1); 
+                      setStep(2); 
                     }}
                     className="bg-stone-900 text-white px-10 py-4 rounded-full font-bold uppercase tracking-widest flex items-center gap-2 hover:bg-stone-800 transition-all shadow-lg"
                   >

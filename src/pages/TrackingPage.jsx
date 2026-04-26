@@ -39,6 +39,14 @@ export default function TrackingPage() {
 
   const handleShareToCommunity = async (e) => {
     e.preventDefault();
+    if (shareData.name.length < 10) {
+      alert('Design name must be at least 10 characters long.');
+      return;
+    }
+    if (shareData.description.length < 10) {
+      alert('Description must be at least 10 characters long.');
+      return;
+    }
     if (!shareData.imageUrl) {
       alert('Please select a photo to share.');
       return;

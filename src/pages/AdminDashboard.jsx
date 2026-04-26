@@ -89,7 +89,7 @@ export default function AdminDashboard() {
       
       const allPresets = [
         ...MOCK_PRESETS.filter(m => !communityIds.includes(m.id)).map(m => ({ ...m, isArchived: false, isClientShared: false })),
-        ...communityPresets
+        ...communityPresets.map(p => ({ ...p, status: p.status || 'approved' }))
       ];
       setPresets(allPresets);
 
@@ -256,6 +256,16 @@ export default function AdminDashboard() {
 
   const handleSavePreset = (e) => {
     e.preventDefault();
+    if (presetData.name.length < 10) {
+      alert('Preset name must be at least 10 characters long.');
+      return;
+    }
+    const price = Number(presetData.price);
+    if (price < 15000) {
+      alert('Estimated cost must be at least ₱15,000.');
+      return;
+    }
+    
     const storedPresets = JSON.parse(localStorage.getItem('emis_community_presets') || '[]');
     let updatedPresets;
 
@@ -304,6 +314,13 @@ export default function AdminDashboard() {
       updatedPresets = [...storedPresets, newPresetEntry];
     }
     
+    localStorage.setItem('emis_community_presets', JSON.stringify(updatedPresets));
+    setPresets(updatedPresets);
+  };
+
+  const handleStatusChange = (presetId, newStatus) => {
+    const storedPresets = JSON.parse(localStorage.getItem('emis_community_presets') || '[]');
+    const updatedPresets = storedPresets.map(p => p.id === presetId ? { ...p, status: newStatus } : p);
     localStorage.setItem('emis_community_presets', JSON.stringify(updatedPresets));
     setPresets(updatedPresets);
   };
@@ -769,16 +786,17 @@ export default function AdminDashboard() {
                   </div>
                   <p className="text-[10px] text-stone-500 uppercase tracking-widest font-bold">{preset.eventType}</p>
                   <p className="text-[8px] text-stone-400 uppercase tracking-widest">Shared by: {preset.sharedBy}</p>
+                  <p className="text-[8px] text-stone-400 uppercase tracking-widest">Status: <span className="capitalize font-bold">{preset.status || 'pending'}</span></p>
                   <div className="flex gap-2 pt-2">
+                    {(preset.status === 'pending' || !preset.status) && (
+                      <>
+                        <button onClick={() => handleStatusChange(preset.id, 'approved')} className="flex-1 py-2 bg-green-50 text-green-600 text-[10px] font-bold uppercase tracking-widest rounded-full hover:bg-green-100 transition-all">Approve</button>
+                        <button onClick={() => handleStatusChange(preset.id, 'rejected')} className="flex-1 py-2 bg-red-50 text-red-600 text-[10px] font-bold uppercase tracking-widest rounded-full hover:bg-red-100 transition-all">Reject</button>
+                      </>
+                    )}
                     <button onClick={() => handleOpenPresetModal(preset)} className="flex-1 py-2 bg-stone-50 text-stone-600 text-[10px] font-bold uppercase tracking-widest rounded-full hover:bg-stone-100 transition-all">Edit</button>
                     <button onClick={() => handleArchivePreset(preset)} className="flex-1 py-2 bg-stone-50 text-stone-600 text-[10px] font-bold uppercase tracking-widest rounded-full hover:bg-stone-100 transition-all">
                       {preset.isArchived ? 'Unarchive' : 'Archive'}
-                    </button>
-                    <button 
-                      onClick={() => setDeletePresetConfirmId(preset.id)} 
-                      className="p-2 text-stone-400 hover:text-red-500 transition-colors"
-                    >
-                      <Trash2 size={16} />
                     </button>
                   </div>
                 </div>
@@ -819,8 +837,8 @@ export default function AdminDashboard() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-xs uppercase tracking-widest font-bold text-stone-500">Price (₱)</label>
-                  <input required type="number" value={presetData.price} onChange={(e) => setPresetData({...presetData, price: Number(e.target.value)})} className="w-full px-6 py-3 bg-stone-50 border border-stone-200 rounded-2xl text-sm" />
+                  <label className="text-xs uppercase tracking-widest font-bold text-stone-500">Estimated Cost (₱)</label>
+                  <input required type="number" value={presetData.price} onChange={(e) => setPresetData({...presetData, price: e.target.value})} className="w-full px-6 py-3 bg-stone-50 border border-stone-200 rounded-2xl text-sm" />
                 </div>
                 <div className="space-y-2">
                   <label className="text-xs uppercase tracking-widest font-bold text-stone-500">Event Type</label>

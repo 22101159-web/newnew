@@ -29,7 +29,7 @@ export default function GalleryPage() {
       const communityPresets = JSON.parse(localStorage.getItem('emis_community_presets') || '[]');
       const allPresets = [
         ...MOCK_PRESETS.map(m => ({ ...m, isArchived: false, isClientShared: false })),
-        ...communityPresets.map(p => ({ ...p, isClientShared: true }))
+        ...communityPresets.map(p => ({ ...p, isClientShared: true, status: p.status || 'approved' }))
       ];
       setPresets(allPresets);
       setLoading(false);
@@ -39,45 +39,58 @@ export default function GalleryPage() {
 
   const handleUpload = async (e) => {
     e.preventDefault();
-    if (!newPreset.image) return;
+    if (!newPreset.image) {
+      alert('Please select a photo.');
+      return;
+    }
+    if (newPreset.name.length < 10) {
+      alert('Design name must be at least 10 characters long.');
+      return;
+    }
+    const price = Number(newPreset.price);
+    if (price < 15000) {
+      alert('Estimated cost must be at least ₱15,000.');
+      return;
+    }
 
     setUploadLoading(true);
     setUploadError(null);
     
-    const session = JSON.parse(localStorage.getItem('admin_session') || '{}');
-    const token = session.token || null;
+    try {
+      const session = JSON.parse(localStorage.getItem('admin_session') || '{}');
+      const token = session.token || null;
 
-    // Helper to save to local storage
-    const savePreset = (imageUrl) => {
-      const communityPresets = JSON.parse(localStorage.getItem('emis_community_presets') || '[]');
-      
-      const newEntry = {
-        id: `preset_${Date.now()}`,
-        name: newPreset.name || 'Untitled Design',
-        description: newPreset.description || '',
-        eventType: newPreset.eventType || 'Other',
-        price: Number(newPreset.price) || 0,
-        imageUrl: imageUrl,
-        isClientShared: true,
-        sharedBy: session.name || 'Anonymous Client',
-        createdAt: new Date().toISOString(),
-        isArchived: false
+      // Helper to save to local storage
+      const savePreset = (imageUrl) => {
+        const communityPresets = JSON.parse(localStorage.getItem('emis_community_presets') || '[]');
+        
+        const newEntry = {
+          id: `preset_${Date.now()}`,
+          name: newPreset.name || 'Untitled Design',
+          description: newPreset.description || '',
+          eventType: newPreset.eventType || 'Other',
+          price: Number(newPreset.price) || 0,
+          imageUrl: imageUrl,
+          isClientShared: true,
+          status: 'pending',
+          sharedBy: session.name || 'Anonymous Client',
+          createdAt: new Date().toISOString(),
+          isArchived: false
+        };
+
+        communityPresets.push(newEntry);
+        localStorage.setItem('emis_community_presets', JSON.stringify(communityPresets));
+        
+        setPresets(prev => [...prev, newEntry]);
+        setUploadSuccess(true);
+        
+        setTimeout(() => {
+          setIsUploadModalOpen(false);
+          setUploadSuccess(false);
+          setNewPreset({ name: '', description: '', eventType: 'Wedding', price: 15000, image: null });
+        }, 2000);
       };
 
-      communityPresets.push(newEntry);
-      localStorage.setItem('emis_community_presets', JSON.stringify(communityPresets));
-      
-      setPresets(prev => [...prev, newEntry]);
-      setUploadSuccess(true);
-      
-      setTimeout(() => {
-        setIsUploadModalOpen(false);
-        setUploadSuccess(false);
-        setNewPreset({ name: '', description: '', eventType: 'Wedding', price: 15000, image: null });
-      }, 2000);
-    };
-
-    try {
       const formData = new FormData();
       formData.append('file', newPreset.image);
       
@@ -107,12 +120,17 @@ export default function GalleryPage() {
     }
   };
 
+  const isAdmin = !!localStorage.getItem('admin_session');
   const filteredPresets = presets.filter(p => 
     !p.isArchived &&
     Number(p.price || 0) <= budgetFilter && 
     p.name.toLowerCase().includes(searchQuery.toLowerCase()) &&
     (selectedType === 'All' || p.eventType === selectedType) &&
-    (showCommunityOnly ? p.isClientShared : !p.isClientShared)
+    (
+      showCommunityOnly 
+        ? p.isClientShared && (isAdmin || p.status === 'approved')
+        : !p.isClientShared
+    )
   );
 
   return (
