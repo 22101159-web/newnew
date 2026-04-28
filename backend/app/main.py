@@ -4,9 +4,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from .database import engine, Base, SessionLocal
 from .models.user import User
 from .models.image import Image
+from .models.app_data import AppData
 from .routers.auth import router as auth_router
 from .routers.users import router as users_router
 from .routers.upload import router as upload_router
+from .routers.app_data import router as app_data_router
 from .services.auth_service import get_password_hash
 
 # Setup logging
@@ -29,6 +31,7 @@ app.add_middleware(
 app.include_router(auth_router)
 app.include_router(users_router)
 app.include_router(upload_router)
+app.include_router(app_data_router, prefix="/api/data")
 
 @app.on_event("startup")
 def startup_event():

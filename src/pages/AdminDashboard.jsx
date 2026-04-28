@@ -1212,7 +1212,7 @@ export default function AdminDashboard() {
               Export and Import your database settings and administrator accounts. Before migrating your application to a new PC, make sure you download the 'sql_app.db' Database backup, and place it in the inner <span className="font-mono text-accent-gold">backend/</span> directory of your new PC layout.
             </p>
           </div>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid md:grid-cols-2 gap-6">
             {/* Database Export */}
             <div className="pd-8 p-8 rounded-[32px] border border-stone-200 bg-stone-50 hover:border-accent-gold/50 transition-colors flex flex-col justify-between h-full">
               <div>
@@ -1220,7 +1220,7 @@ export default function AdminDashboard() {
                   <Database size={24} />
                 </div>
                 <h3 className="font-serif italic text-xl mb-2">Export accounts DB</h3>
-                <p className="text-sm text-stone-500 mb-6">Download the sql_app.db SQLite file which contains all registered user and admin credentials.</p>
+                <p className="text-sm text-stone-500 mb-6">Download the unified database backing up all events, chats, presets, and accounts.</p>
               </div>
               <a 
                 href="/api/backup/download" 
@@ -1238,7 +1238,7 @@ export default function AdminDashboard() {
                   <Upload size={24} />
                 </div>
                 <h3 className="font-serif italic text-xl mb-2">Restore accounts DB</h3>
-                <p className="text-sm text-stone-500 mb-6">Replace the current active SQLite file. Server restart recommended.</p>
+                <p className="text-sm text-stone-500 mb-6">Replace the current active unified DB file. Server restart recommended.</p>
               </div>
               <label className="w-full bg-white border border-stone-200 text-stone-900 flex-shrink-0 mt-auto py-4 rounded-full font-bold uppercase tracking-widest text-xs hover:border-accent-gold transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer">
                 <Upload size={16} /> Upload (.db)
@@ -1264,75 +1264,6 @@ export default function AdminDashboard() {
                     } catch (err) {
                       alert('Error uploading database: ' + err.message);
                     }
-                  }}
-                />
-              </label>
-            </div>
-
-            {/* LocalStorage Export */}
-            <div className="pd-8 p-8 rounded-[32px] border border-stone-200 bg-stone-50 hover:border-accent-gold/50 transition-colors flex flex-col justify-between h-full">
-              <div>
-                <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-accent-gold shadow-sm mb-6">
-                  <Archive size={24} />
-                </div>
-                <h3 className="font-serif italic text-xl mb-2">Export Local Data</h3>
-                <p className="text-sm text-stone-500 mb-6">Download your Bookings, Events, and Presets that are stored in the browser as a JSON file.</p>
-              </div>
-              <button 
-                onClick={() => {
-                  const data = {
-                    emis_events: JSON.parse(localStorage.getItem('emis_events') || '[]'),
-                    emis_presets: JSON.parse(localStorage.getItem('emis_presets') || '[]'),
-                    emis_messages: JSON.parse(localStorage.getItem('emis_messages') || '{}'),
-                    emis_community_presets: JSON.parse(localStorage.getItem('emis_community_presets') || '[]')
-                  };
-                  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-                  const url = URL.createObjectURL(blob);
-                  const a = document.createElement('a');
-                  a.href = url;
-                  a.download = 'emis_local_data.json';
-                  a.click();
-                  URL.revokeObjectURL(url);
-                }}
-                className="w-full bg-stone-900 flex-shrink-0 mt-auto text-white py-4 rounded-full font-bold uppercase tracking-widest text-xs hover:bg-stone-800 transition-all shadow-lg flex items-center justify-center gap-2"
-              >
-                <Download size={16} /> JSON Export
-              </button>
-            </div>
-
-            {/* LocalStorage Import */}
-            <div className="pd-8 p-8 rounded-[32px] border border-stone-200 bg-stone-50 hover:border-accent-gold/50 transition-colors flex flex-col justify-between h-full">
-              <div>
-                <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-accent-gold shadow-sm mb-6">
-                  <Upload size={24} />
-                </div>
-                <h3 className="font-serif italic text-xl mb-2">Restore Local Data</h3>
-                <p className="text-sm text-stone-500 mb-6">Import Bookings/Events from a JSON file to your current browser.</p>
-              </div>
-              <label className="w-full bg-white border border-stone-200 text-stone-900 py-4 flex-shrink-0 mt-auto rounded-full font-bold uppercase tracking-widest text-xs hover:border-accent-gold transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer">
-                <Upload size={16} /> Upload JSON
-                <input 
-                  type="file" 
-                  accept=".json"
-                  className="hidden"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (!file) return;
-                    const reader = new FileReader();
-                    reader.onload = (event) => {
-                      try {
-                        const data = JSON.parse(event.target.result);
-                        if (data.emis_events) localStorage.setItem('emis_events', JSON.stringify(data.emis_events));
-                        if (data.emis_presets) localStorage.setItem('emis_presets', JSON.stringify(data.emis_presets));
-                        if (data.emis_messages) localStorage.setItem('emis_messages', JSON.stringify(data.emis_messages));
-                        if (data.emis_community_presets) localStorage.setItem('emis_community_presets', JSON.stringify(data.emis_community_presets));
-                        alert('Local data imported successfully!');
-                        window.location.reload();
-                      } catch (err) {
-                        alert('Could not parse JSON: ' + err.message);
-                      }
-                    };
-                    reader.readAsText(file);
                   }}
                 />
               </label>
