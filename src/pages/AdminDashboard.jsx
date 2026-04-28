@@ -1282,7 +1282,9 @@ export default function AdminDashboard() {
                 onClick={() => {
                   const data = {
                     emis_events: JSON.parse(localStorage.getItem('emis_events') || '[]'),
-                    emis_presets: JSON.parse(localStorage.getItem('emis_presets') || '[]')
+                    emis_presets: JSON.parse(localStorage.getItem('emis_presets') || '[]'),
+                    emis_messages: JSON.parse(localStorage.getItem('emis_messages') || '{}'),
+                    emis_community_presets: JSON.parse(localStorage.getItem('emis_community_presets') || '[]')
                   };
                   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
                   const url = URL.createObjectURL(blob);
@@ -1322,6 +1324,8 @@ export default function AdminDashboard() {
                         const data = JSON.parse(event.target.result);
                         if (data.emis_events) localStorage.setItem('emis_events', JSON.stringify(data.emis_events));
                         if (data.emis_presets) localStorage.setItem('emis_presets', JSON.stringify(data.emis_presets));
+                        if (data.emis_messages) localStorage.setItem('emis_messages', JSON.stringify(data.emis_messages));
+                        if (data.emis_community_presets) localStorage.setItem('emis_community_presets', JSON.stringify(data.emis_community_presets));
                         alert('Local data imported successfully!');
                         window.location.reload();
                       } catch (err) {

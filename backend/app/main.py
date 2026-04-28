@@ -21,7 +21,7 @@ app = FastAPI(title="EMI System API")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -35,8 +35,8 @@ def startup_event():
     logger.info("Starting up EMI API")
     db = SessionLocal()
     try:
-        # Check if admin exists
-        admin = db.query(User).filter(User.username == "Admin123").first()
+        from sqlalchemy import func
+        admin = db.query(User).filter(func.lower(User.username) == "admin123").first()
         if not admin:
             logger.info("Admin user not found. Creating default admin.")
             hashed_pw = get_password_hash("Admin123")

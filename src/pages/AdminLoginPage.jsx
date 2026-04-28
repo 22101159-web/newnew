@@ -17,7 +17,7 @@ export default function AdminLoginPage() {
     try {
       const formData = new URLSearchParams();
       formData.append('username', username.trim());
-      formData.append('password', password);
+      formData.append('password', password.trim());
 
       const response = await fetch('/api/auth/login', {
         method: 'POST',
@@ -28,7 +28,18 @@ export default function AdminLoginPage() {
       });
 
       if (!response.ok) {
-        throw new Error('Invalid credentials');
+        let errorMsg = 'Invalid credentials';
+        try {
+          const errorData = await response.json();
+          if (errorData.detail) errorMsg = errorData.detail;
+        } catch (e) {
+          if (response.status === 502 || response.status === 504) {
+             errorMsg = 'Backend server is not running or unreachable';
+          } else {
+             errorMsg = `Server error: ${response.status}`;
+          }
+        }
+        throw new Error(errorMsg);
       }
 
       const data = await response.json();
