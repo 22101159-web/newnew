@@ -57,3 +57,21 @@ def startup_event():
 @app.get("/api/health")
 def health_check():
     return {"status": "ok"}
+
+import os
+from fastapi.responses import FileResponse
+from fastapi import UploadFile, File
+
+@app.get("/api/backup/download")
+def download_backup():
+    db_path = "./sql_app.db"
+    if os.path.exists(db_path):
+        return FileResponse(db_path, media_type='application/octet-stream', filename="sql_app.db")
+    return {"error": "Database file not found"}
+
+@app.post("/api/backup/upload")
+async def upload_backup(file: UploadFile = File(...)):
+    db_path = "./sql_app.db"
+    with open(db_path, "wb") as buffer:
+        buffer.write(await file.read())
+    return {"status": "success", "message": "Database replaced successfully"}

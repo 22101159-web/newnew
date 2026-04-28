@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { 
   LayoutDashboard, Users, Calendar as CalendarIcon, TrendingUp, Search, Filter, 
-  ArrowRight, CheckCircle2, Clock, AlertCircle, Plus, X, Trash2, ChevronLeft, Archive
+  ArrowRight, CheckCircle2, Clock, AlertCircle, Plus, X, Trash2, ChevronLeft, Archive, Database, Upload, Download
 } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 import FullCalendar from '@fullcalendar/react';
@@ -173,18 +173,6 @@ export default function AdminDashboard() {
 
     if (hasConflict) {
       alert('CONFLICT: This date is already booked by another client. Only one event per day is allowed.');
-      return;
-    }
-
-    const sameContactEvents = events.filter(e => 
-      e.id !== selectedEvent?.id && (
-        (e.clientPhone === formData.clientPhone && e.clientEmail !== formData.clientEmail) ||
-        (e.clientEmail === formData.clientEmail && e.clientPhone !== formData.clientPhone)
-      )
-    );
-
-    if (sameContactEvents.length > 0) {
-      alert('The email address or phone number is already registered to a different customer.');
       return;
     }
 
@@ -497,6 +485,12 @@ export default function AdminDashboard() {
             className={`px-6 py-3 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all ${activeTab === 'users' ? 'bg-accent-gold text-white shadow-lg' : 'bg-white border border-stone-200 text-stone-600 hover:border-accent-gold hover:text-accent-gold'}`}
           >
             <Users size={14} className="inline mr-2" /> Users
+          </button>
+          <button 
+            onClick={() => setActiveTab('system')}
+            className={`px-6 py-3 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all ${activeTab === 'system' ? 'bg-accent-gold text-white shadow-lg' : 'bg-white border border-stone-200 text-stone-600 hover:border-accent-gold hover:text-accent-gold'}`}
+          >
+            <Database size={14} className="inline mr-2" /> System
           </button>
           <button 
             onClick={() => handleOpenModal()}
@@ -1205,6 +1199,139 @@ export default function AdminDashboard() {
               >
                 Confirm Remove
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'system' && (
+        <div className="bg-white p-10 rounded-[40px] shadow-sm border border-stone-100 space-y-8">
+          <div>
+            <h2 className="text-2xl font-serif italic text-stone-900">System Information & Backup</h2>
+            <p className="text-sm text-stone-500 mt-2 max-w-2xl">
+              Export and Import your database settings and administrator accounts. Before migrating your application to a new PC, make sure you download the 'sql_app.db' Database backup, and place it in the inner <span className="font-mono text-accent-gold">backend/</span> directory of your new PC layout.
+            </p>
+          </div>
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {/* Database Export */}
+            <div className="pd-8 p-8 rounded-[32px] border border-stone-200 bg-stone-50 hover:border-accent-gold/50 transition-colors flex flex-col justify-between h-full">
+              <div>
+                <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-accent-gold shadow-sm mb-6">
+                  <Database size={24} />
+                </div>
+                <h3 className="font-serif italic text-xl mb-2">Export accounts DB</h3>
+                <p className="text-sm text-stone-500 mb-6">Download the sql_app.db SQLite file which contains all registered user and admin credentials.</p>
+              </div>
+              <a 
+                href="/api/backup/download" 
+                download
+                className="w-full bg-stone-900 text-white py-4 flex-shrink-0 mt-auto rounded-full font-bold uppercase tracking-widest text-xs hover:bg-stone-800 transition-all shadow-lg flex items-center justify-center gap-2"
+              >
+                <Download size={16} /> Download
+              </a>
+            </div>
+            
+            {/* Database Import */}
+            <div className="pd-8 p-8 rounded-[32px] border border-stone-200 bg-stone-50 hover:border-accent-gold/50 transition-colors flex flex-col justify-between h-full">
+              <div>
+                <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-accent-gold shadow-sm mb-6">
+                  <Upload size={24} />
+                </div>
+                <h3 className="font-serif italic text-xl mb-2">Restore accounts DB</h3>
+                <p className="text-sm text-stone-500 mb-6">Replace the current active SQLite file. Server restart recommended.</p>
+              </div>
+              <label className="w-full bg-white border border-stone-200 text-stone-900 flex-shrink-0 mt-auto py-4 rounded-full font-bold uppercase tracking-widest text-xs hover:border-accent-gold transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer">
+                <Upload size={16} /> Upload (.db)
+                <input 
+                  type="file" 
+                  accept=".db"
+                  className="hidden"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    try {
+                      const res = await fetch('/api/backup/upload', {
+                        method: 'POST',
+                        body: formData
+                      });
+                      if (res.ok) {
+                        alert('Database restored successfully! Please restart the backend applet/server.');
+                      } else {
+                        alert('Failed to upload the database.');
+                      }
+                    } catch (err) {
+                      alert('Error uploading database: ' + err.message);
+                    }
+                  }}
+                />
+              </label>
+            </div>
+
+            {/* LocalStorage Export */}
+            <div className="pd-8 p-8 rounded-[32px] border border-stone-200 bg-stone-50 hover:border-accent-gold/50 transition-colors flex flex-col justify-between h-full">
+              <div>
+                <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-accent-gold shadow-sm mb-6">
+                  <Archive size={24} />
+                </div>
+                <h3 className="font-serif italic text-xl mb-2">Export Local Data</h3>
+                <p className="text-sm text-stone-500 mb-6">Download your Bookings, Events, and Presets that are stored in the browser as a JSON file.</p>
+              </div>
+              <button 
+                onClick={() => {
+                  const data = {
+                    emis_events: JSON.parse(localStorage.getItem('emis_events') || '[]'),
+                    emis_presets: JSON.parse(localStorage.getItem('emis_presets') || '[]')
+                  };
+                  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = 'emis_local_data.json';
+                  a.click();
+                  URL.revokeObjectURL(url);
+                }}
+                className="w-full bg-stone-900 flex-shrink-0 mt-auto text-white py-4 rounded-full font-bold uppercase tracking-widest text-xs hover:bg-stone-800 transition-all shadow-lg flex items-center justify-center gap-2"
+              >
+                <Download size={16} /> JSON Export
+              </button>
+            </div>
+
+            {/* LocalStorage Import */}
+            <div className="pd-8 p-8 rounded-[32px] border border-stone-200 bg-stone-50 hover:border-accent-gold/50 transition-colors flex flex-col justify-between h-full">
+              <div>
+                <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-accent-gold shadow-sm mb-6">
+                  <Upload size={24} />
+                </div>
+                <h3 className="font-serif italic text-xl mb-2">Restore Local Data</h3>
+                <p className="text-sm text-stone-500 mb-6">Import Bookings/Events from a JSON file to your current browser.</p>
+              </div>
+              <label className="w-full bg-white border border-stone-200 text-stone-900 py-4 flex-shrink-0 mt-auto rounded-full font-bold uppercase tracking-widest text-xs hover:border-accent-gold transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer">
+                <Upload size={16} /> Upload JSON
+                <input 
+                  type="file" 
+                  accept=".json"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                      try {
+                        const data = JSON.parse(event.target.result);
+                        if (data.emis_events) localStorage.setItem('emis_events', JSON.stringify(data.emis_events));
+                        if (data.emis_presets) localStorage.setItem('emis_presets', JSON.stringify(data.emis_presets));
+                        alert('Local data imported successfully!');
+                        window.location.reload();
+                      } catch (err) {
+                        alert('Could not parse JSON: ' + err.message);
+                      }
+                    };
+                    reader.readAsText(file);
+                  }}
+                />
+              </label>
             </div>
           </div>
         </div>

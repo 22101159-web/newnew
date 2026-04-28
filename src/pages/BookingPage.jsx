@@ -93,17 +93,6 @@ export default function BookingPage() {
         return;
       }
 
-      const sameContactEvents = events.filter(e => 
-        (e.clientPhone === formData.clientPhone && e.clientEmail !== formData.clientEmail) ||
-        (e.clientEmail === formData.clientEmail && e.clientPhone !== formData.clientPhone)
-      );
-
-      if (sameContactEvents.length > 0) {
-        alert('The email address or phone number is already registered to a different customer.');
-        setLoading(false);
-        return;
-      }
-
       const trackingNumber = `GC-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
       const eventId = `event_${Date.now()}`;
       const eventData = {
