@@ -18,12 +18,20 @@ async function start() {
       stdio: 'inherit' 
     });
     p.on('error', (err) => {
-      console.warn("Python executable not found or error spawning: ", err.message);
+      console.error("CRITICAL ERROR: Python executable not found or error spawning pip.");
+      console.error("Ensure Python 3 is installed and in your PATH.");
+      console.error("System error message: ", err.message);
       resolve(false);
     });
     p.on('close', (code) => {
-      if (code === 0) resolve(true);
-      else reject(new Error(`pip install failed with code ${code}`));
+      if (code === 0) {
+        console.log("Python dependencies installed successfully.");
+        resolve(true);
+      }
+      else {
+        console.error(`pip install failed with code ${code}. Check the output above for errors.`);
+        resolve(false);
+      }
     });
   });
 
@@ -34,11 +42,17 @@ async function start() {
   });
 
   pythonServer.on('error', (err) => {
-    console.error("Python Server failed to start:", err.message);
+    console.error("CRITICAL ERROR: Python Server failed to start.");
+    console.error("Error message:", err.message);
+    if (err.code === 'ENOENT') {
+      console.error("The python command was not found. Please install Python 3.");
+    }
   });
 
   pythonServer.on('close', (code) => {
-    console.log(`Python server exited with code ${code}`);
+    if (code !== 0 && code !== null) {
+      console.error(`Python server crashed or exited with error code ${code}`);
+    }
   });
 
   const isProd = process.env.NODE_ENV === 'production';
