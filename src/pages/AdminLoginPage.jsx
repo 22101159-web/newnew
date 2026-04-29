@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Lock, User, ArrowRight, ArrowLeft } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 export default function AdminLoginPage() {
   const [username, setUsername] = useState('');
@@ -8,6 +9,7 @@ export default function AdminLoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -51,12 +53,12 @@ export default function AdminLoginPage() {
         name: username
       };
       
-      localStorage.setItem('admin_session', JSON.stringify(sessionData));
+      login(sessionData);
       
       if (data.role === 'admin') {
-        window.location.href = '/admin/dashboard';
+        navigate('/admin/dashboard');
       } else {
-        window.location.href = '/staff/dashboard';
+        navigate('/staff/dashboard');
       }
     } catch (err) {
       setError(err.message || 'Authentication failed');
@@ -64,6 +66,7 @@ export default function AdminLoginPage() {
       setLoading(false);
     }
   };
+
 
   return (
     <div className="min-h-[70vh] flex flex-col items-center justify-center space-y-6">
