@@ -70,9 +70,9 @@ WSGI_APPLICATION = 'core.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'django_react_db',  # Database name you will create in your XAMPP phpMyAdmin
-        'USER': 'root',             # Default MariaDB user in XAMPP
-        'PASSWORD': '',             # Root usually has no password
+        'NAME': 'django_react_db',
+        'USER': 'django_user',
+        'PASSWORD': 'django123',
         'HOST': '127.0.0.1',
         'PORT': '3306',
         'OPTIONS': {
