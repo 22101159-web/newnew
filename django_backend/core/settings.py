@@ -66,15 +66,18 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'core.wsgi.application'
 
-# Database Configuration (XAMPP MariaDB)
+# Database Configuration
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'django_react_db',  # Database name you will create in phpMyAdmin
-        'USER': 'root',             # Default XAMPP MySQL user
-        'PASSWORD': '',             # Default XAMPP MySQL password is empty
-        'HOST': '127.0.0.1',        # localhost
-        'PORT': '3306',             # Default MySQL Port
+        'NAME': 'django_react_db',  # Database name you will create in your XAMPP phpMyAdmin
+        'USER': 'root',             # Default MariaDB user in XAMPP
+        'PASSWORD': '',             # Root usually has no password
+        'HOST': '127.0.0.1',
+        'PORT': '3306',
+        'OPTIONS': {
+            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+        },
     }
 }
 
@@ -91,6 +94,11 @@ USE_I18N = True
 USE_TZ = True
 
 STATIC_URL = 'static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'static')
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 AUTH_USER_MODEL = 'api.CustomUser'

@@ -12,9 +12,8 @@ async function start() {
   
   console.log("Installing Python dependencies...");
   await new Promise((resolve, reject) => {
-    // Adding uv / pip command here
     const p = spawn(pythonCmd, ['-m', 'pip', 'install', '-r', 'requirements.txt'], { 
-      cwd: path.join(__dirname, 'backend'),
+      cwd: path.join(__dirname, 'django_backend'),
       stdio: 'inherit' 
     });
     p.on('error', (err) => {
@@ -27,9 +26,27 @@ async function start() {
     });
   });
 
-  console.log("Starting Python FastAPI Server...");
-  const pythonServer = spawn(pythonCmd, ['-m', 'uvicorn', 'app.main:app', '--host', '127.0.0.1', '--port', '8000'], {
-    cwd: path.join(__dirname, 'backend'),
+  console.log("Running Django migrations...");
+  await new Promise((resolve) => {
+    const p = spawn(pythonCmd, ['manage.py', 'migrate'], {
+      cwd: path.join(__dirname, 'django_backend'),
+      stdio: 'inherit'
+    });
+    p.on('close', () => resolve(true));
+  });
+
+  console.log("Seeding initial users...");
+  await new Promise((resolve) => {
+    const p = spawn(pythonCmd, ['seed_users.py'], {
+      cwd: path.join(__dirname, 'django_backend'),
+      stdio: 'inherit'
+    });
+    p.on('close', () => resolve(true));
+  });
+
+  console.log("Starting Django Server...");
+  const pythonServer = spawn(pythonCmd, ['manage.py', 'runserver', '127.0.0.1:8000', '--noreload'], {
+    cwd: path.join(__dirname, 'django_backend'),
     stdio: 'inherit'
   });
 

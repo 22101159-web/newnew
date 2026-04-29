@@ -53,25 +53,20 @@ python manage.py runserver
 ```
 Your backend API is now running on `http://127.0.0.1:8000`.
 
-## 4. Set up the React Frontend
-Open a **new separate terminal** and navigate to the root of the extracted folder (where `package.json` is).
-
+## 5. Running the App
+The project is configured to be fully automatic. Just run:
 ```bash
-# Install Node dependencies
 npm install
-
-# Start the Vite React development server
 npm run dev
 ```
 
-*The `vite.config.js` is already configured to proxy `/api` requests to Django on port `8000`.*
+What this command does:
+1. Installs Node.js dependencies.
+2. Installs Python dependencies in `django_backend`.
+3. Runs Django migrations (using SQLite `db.sqlite3` for portability).
+4. Seeds initial users:
+   - **Admin**: `admin` / `admin123`
+   - **Staff**: `staff` / `staff123`
+5. Starts BOTH the React frontend and Django backend.
 
----
-
-### What's Included in the Port:
-1. **Models (`api/models.py`)**: `CustomUser` using Django's built-in Auth but extended with `role`.
-2. **Setup (`core/settings.py`)**: Connected to XAMPP MariaDB `django_react_db` with `root` user and no password.
-3. **CORS**: Configured `django-cors-headers` so React port `5173` or `3000` can access the API.
-4. **Auth**: Connected `djangorestframework-simplejwt` so that login returns the exact same JWT payload structure that React's Context API expects (`{ "uid", "name", "role", "access" }`).
-
-You are now fully set up with Django, DRF, React, Context API, and XAMPP MariaDB!
+You can now login to the admin dashboard at `/admin/login` using the credentials above.

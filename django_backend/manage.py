@@ -3,6 +3,13 @@
 import os
 import sys
 
+# Add these lines to allow Django to use pymysql instead of mysqlclient
+try:
+    import pymysql
+    pymysql.install_as_MySQLdb()
+except ImportError:
+    pass
+
 def main():
     """Run administrative tasks."""
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'core.settings')
@@ -14,7 +21,7 @@ def main():
             "available on your PYTHONPATH environment variable? Did you "
             "forget to activate a virtual environment?"
         ) from exc
-    execute_from_command_line(sys.args)
+    execute_from_command_line(sys.argv)
 
 if __name__ == '__main__':
     main()

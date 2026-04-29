@@ -58,7 +58,7 @@ export default function Navbar({ user, role }) {
                 className="flex items-center space-x-2 bg-accent-gold text-white px-6 py-2 rounded-full text-sm uppercase tracking-widest font-bold hover:bg-gold-600 transition-all"
               >
                 <User size={16} />
-                <span>Admin Login</span>
+                <span>System Login</span>
               </Link>
             )}
           </div>
@@ -97,7 +97,7 @@ export default function Navbar({ user, role }) {
             {(user && !user.isAnonymous) ? (
               <button onClick={handleLogout} className="block text-sm uppercase tracking-widest text-stone-400">Logout</button>
             ) : (
-              <Link to="/admin/login" className="block text-sm uppercase tracking-widest text-accent-gold font-bold" onClick={() => setIsOpen(false)}>Admin Login</Link>
+              <Link to="/admin/login" className="block text-sm uppercase tracking-widest text-accent-gold font-bold" onClick={() => setIsOpen(false)}>System Login</Link>
             )}
           </div>
         </div>

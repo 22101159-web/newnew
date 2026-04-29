@@ -5,7 +5,7 @@ export function useApiData(key, defaultValue) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch(`/api/data/${key}`)
+    fetch(`/api/data/${key}/`)
       .then(res => res.json())
       .then(res => {
         if (res.value && res.value !== 'null') {
@@ -19,7 +19,7 @@ export function useApiData(key, defaultValue) {
   const updateData = async (newData) => {
     setData(newData);
     try {
-      await fetch(`/api/data/${key}`, {
+      await fetch(`/api/data/${key}/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ value: JSON.stringify(newData) })

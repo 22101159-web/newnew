@@ -21,7 +21,7 @@ export default function AdminLoginPage() {
       formData.append('username', username.trim());
       formData.append('password', password.trim());
 
-      const response = await fetch('/api/auth/login', {
+      const response = await fetch('/api/auth/login/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
@@ -48,7 +48,7 @@ export default function AdminLoginPage() {
       
       const sessionData = {
         uid: data.uid,
-        token: data.access_token,
+        token: data.access,
         role: data.role,
         name: username
       };
@@ -57,8 +57,12 @@ export default function AdminLoginPage() {
       
       if (data.role === 'admin') {
         navigate('/admin/dashboard');
-      } else {
+      } else if (data.role === 'staff') {
         navigate('/staff/dashboard');
+      } else {
+        // If regular user somehow logs in here, send them to home or show error.
+        // Let's just send them to home for now.
+        navigate('/');
       }
     } catch (err) {
       setError(err.message || 'Authentication failed');
@@ -80,7 +84,7 @@ export default function AdminLoginPage() {
       <div className="bg-white p-12 rounded-[40px] border border-stone-200 shadow-2xl w-full max-w-md space-y-8">
         <div className="text-center space-y-2">
           <span className="text-xs uppercase tracking-[0.5em] text-accent-gold">System Access</span>
-          <h1 className="text-4xl font-serif italic text-stone-900">Admin Login</h1>
+          <h1 className="text-4xl font-serif italic text-stone-900">System Login</h1>
           <p className="text-xs uppercase tracking-widest text-stone-400">
             Enter your credentials to continue
           </p>

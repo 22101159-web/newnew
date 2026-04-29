@@ -1,7 +1,7 @@
 class ApiStorage {
   async getItem(key, defaultValue = null) {
     try {
-      const res = await fetch(`/api/data/${key}`);
+      const res = await fetch(`/api/data/${key}/`);
       if (!res.ok) return defaultValue;
       const data = await res.json();
       if (data.value === 'null' || !data.value) return defaultValue;
@@ -15,7 +15,7 @@ class ApiStorage {
   async setItem(key, value) {
     try {
       const payload = { value: JSON.stringify(value) };
-      await fetch(`/api/data/${key}`, {
+      await fetch(`/api/data/${key}/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
