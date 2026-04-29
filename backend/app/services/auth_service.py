@@ -1,14 +1,21 @@
-from passlib.context import CryptContext
+import bcrypt
 from sqlalchemy.orm import Session
 from ..models.user import User
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
 def verify_password(plain_password, hashed_password):
-    return pwd_context.verify(plain_password, hashed_password)
+    try:
+        return bcrypt.checkpw(
+            plain_password.encode('utf-8'),
+            hashed_password.encode('utf-8')
+        )
+    except Exception as e:
+        # In case the hash is invalid or missing, fallback to plain text comparison (if any legacy plaintext passwords exist)
+        return plain_password == hashed_password
 
 def get_password_hash(password):
-    return pwd_context.hash(password)
+    salt = bcrypt.gensalt()
+    hashed = bcrypt.hashpw(password.encode('utf-8'), salt)
+    return hashed.decode('utf-8')
 
 def get_user_by_username(db: Session, username: str):
     from sqlalchemy import func
