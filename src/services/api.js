@@ -14,8 +14,8 @@ class ApiStorage {
 
   async setItem(key, value) {
     try {
-      const payload = { value: JSON.stringify(value) };
-      await fetch(`/api/data/${key}/`, {
+      const payload = { key, value: JSON.stringify(value) };
+      await fetch(`/api/data/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

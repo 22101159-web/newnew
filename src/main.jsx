@@ -9,10 +9,10 @@ const originalSetItem = localStorage.setItem;
 localStorage.setItem = function(key, value) {
   originalSetItem.apply(this, arguments);
   if (key.startsWith('emis_')) {
-    fetch(`/api/data/${key}/`, {
+    fetch(`/api/data/`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ value })
+      body: JSON.stringify({ key, value })
     }).catch(console.error);
   }
 };
@@ -31,10 +31,10 @@ async function initData() {
           // If DB is empty but we have local data, push local data to DB
           const localVal = localStorage.getItem(key);
           if (localVal && localVal !== '[]' && localVal !== '{}') {
-            fetch(`/api/data/${key}/`, {
+            fetch(`/api/data/`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ value: localVal })
+              body: JSON.stringify({ key, value: localVal })
             }).catch(console.error);
           }
         }
