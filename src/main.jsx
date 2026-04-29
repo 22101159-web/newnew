@@ -45,7 +45,31 @@ async function initData() {
   }
 }
 
+async function syncData() {
+  const keys = ['emis_events', 'emis_presets', 'emis_community_presets', 'emis_messages'];
+  try {
+    await Promise.all(keys.map(async key => {
+      const res = await fetch(`/api/data/${key}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.value && data.value !== 'null') {
+          const currentLocal = localStorage.getItem(key);
+          // Only update if data is different to avoid unnecessary React re-renders triggered by localStorage polling
+          if (data.value !== currentLocal) {
+            originalSetItem.call(localStorage, key, data.value);
+          }
+        }
+      }
+    }));
+  } catch (e) {
+    console.error('Periodic sync failed', e);
+  }
+}
+
 initData().finally(() => {
+  // Start periodic polling for real-time updates
+  setInterval(syncData, 5000);
+
   createRoot(document.getElementById('root')).render(
     <StrictMode>
       <App />
