@@ -36,6 +36,11 @@ class AppDataSerializer(serializers.ModelSerializer):
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     def validate(self, attrs):
         data = super().validate(attrs)
+        
+        # Only allow admin and staff to log in
+        if self.user.role not in ['admin', 'staff']:
+            raise serializers.ValidationError({"detail": "Access denied. Unauthorized role."})
+
         # Add custom claims to the token response
         data['uid'] = self.user.id
         data['name'] = self.user.username

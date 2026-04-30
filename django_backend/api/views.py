@@ -23,15 +23,15 @@ class UserProfileView(APIView):
         return Response(serializer.data)
 
 class UserViewSet(viewsets.ModelViewSet):
-    queryset = User.objects.all()
     serializer_class = UserSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        # Optional: restrict to admins only for listing/modifying
+        # restrict to admins and staff, and filter only those roles
+        queryset = User.objects.filter(role__in=['admin', 'staff'])
         if self.request.user.is_staff or self.request.user.role == 'admin':
-            return User.objects.all()
-        return User.objects.filter(id=self.request.user.id)
+            return queryset
+        return queryset.filter(id=self.request.user.id)
 
 class AppDataViewSet(viewsets.ModelViewSet):
     queryset = AppData.objects.all()
@@ -55,7 +55,7 @@ class AppDataViewSet(viewsets.ModelViewSet):
         return Response(serializer.data, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
 
 class FileUploadView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
     parser_classes = (MultiPartParser, FormParser)
 
     def post(self, request, *args, **kwargs):

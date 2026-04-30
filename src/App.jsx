@@ -10,7 +10,6 @@ import TrackingPage from './pages/TrackingPage';
 import AdminDashboard from './pages/AdminDashboard';
 import StaffDashboard from './pages/StaffDashboard';
 import AdminLoginPage from './pages/AdminLoginPage';
-import ClientDashboard from './pages/ClientDashboard';
 
 // Components
 import Navbar from './components/Navbar';
@@ -37,7 +36,6 @@ function AppRoutes() {
           <Route path="/gallery" element={<GalleryPage />} />
           <Route path="/track/:id" element={<TrackingPage />} />
           <Route path="/admin/login" element={<AdminLoginPage />} />
-          <Route path="/my-bookings" element={<ClientDashboard />} />
           
           {/* Protected Routes */}
           <Route 

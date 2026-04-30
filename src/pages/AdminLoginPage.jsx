@@ -60,9 +60,7 @@ export default function AdminLoginPage() {
       } else if (data.role === 'staff') {
         navigate('/staff/dashboard');
       } else {
-        // If regular user somehow logs in here, send them to home or show error.
-        // Let's just send them to home for now.
-        navigate('/');
+        throw new Error("Access denied. Unauthorized role.");
       }
     } catch (err) {
       setError(err.message || 'Authentication failed');
