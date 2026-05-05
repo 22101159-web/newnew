@@ -28,6 +28,7 @@ export default function Navbar({ user, role }) {
               <>
                 <Link to="/" className="text-sm uppercase tracking-widest text-stone-600 hover:text-accent-gold transition-colors">Home</Link>
                 <Link to="/gallery" className="text-sm uppercase tracking-widest text-stone-600 hover:text-accent-gold transition-colors">Gallery</Link>
+                <Link to="/my-bookings" className="text-sm uppercase tracking-widest text-stone-600 hover:text-accent-gold transition-colors">My Bookings</Link>
                 <Link to="/book" className="text-sm uppercase tracking-widest text-stone-600 hover:text-accent-gold transition-colors">Book Now</Link>
               </>
             ) : role === 'admin' ? (
@@ -78,6 +79,7 @@ export default function Navbar({ user, role }) {
             <>
               <Link to="/" className="block text-sm uppercase tracking-widest text-stone-600" onClick={() => setIsOpen(false)}>Home</Link>
               <Link to="/gallery" className="block text-sm uppercase tracking-widest text-stone-600" onClick={() => setIsOpen(false)}>Gallery</Link>
+              <Link to="/my-bookings" className="block text-sm uppercase tracking-widest text-stone-600" onClick={() => setIsOpen(false)}>My Bookings</Link>
               <Link to="/book" className="block text-sm uppercase tracking-widest text-stone-600" onClick={() => setIsOpen(false)}>Book Now</Link>
             </>
           ) : role === 'admin' ? (
